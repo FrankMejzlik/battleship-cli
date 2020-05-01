@@ -16,5 +16,17 @@ namespace Battleship.Forms
         {
             InitializeComponent();
         }
+
+        private void startGameButton_Click(object sender, EventArgs e)
+        {
+            var battlefieldForm = new BattlefieldForm();
+            battlefieldForm.Show();            
+        }
+
+        private void joinGameButton_Click(object sender, EventArgs e)
+        {
+            var battlefieldForm = new BattlefieldForm();
+            battlefieldForm.Show();
+        }
     }
 }
