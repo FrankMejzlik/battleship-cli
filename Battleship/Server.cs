@@ -1,7 +1,8 @@
-﻿using System;
+﻿using Battleship.Models;
+using Battleship.Services;
+using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Windows.Forms;
 
 namespace Battleship
@@ -37,7 +38,7 @@ namespace Battleship
             }
             catch (Exception ex)
             {
-                WriteLog($"Cannot start server on port {Port}: " + ex);
+                WriteLog($"Cannot start server on port {Port}: " + ex.Message);
                 return;
             }
 
@@ -52,27 +53,26 @@ namespace Battleship
 
         public void Listen()
         {
-            byte[] bytes = new byte[1024];
-
             while (true)
             {
-                var bytesRead = stream.Read(bytes, 0, bytes.Length);
-                var message = Encoding.UTF8.GetString(bytes, 0, bytesRead);
-                WriteLog("Message received: " + message);
+                var packet = PacketService.ReceivePacket(client);
+
+                if (packet != null && packet.Type == "message")
+                {
+                    WriteLog("Message received: " + packet.Data);
+                }
             }
         }
 
         public void SendMessage(string message)
         {
-            if (stream != null)
+            if (client != null && PacketService.SendPacket(new Packet("message", message), client))
             {
-                var bytes = Encoding.UTF8.GetBytes(message);
-                stream.Write(bytes, 0, bytes.Length);
                 WriteLog("Message sent: " + message);
             }
             else
             {
-                WriteLog("Cannot send message, client not connected.");
+                WriteLog("Cannot send message.");
             }
         }
 

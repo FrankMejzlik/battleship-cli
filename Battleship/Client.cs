@@ -1,6 +1,7 @@
-﻿using System;
+﻿using Battleship.Models;
+using Battleship.Services;
+using System;
 using System.Net.Sockets;
-using System.Text;
 using System.Windows.Forms;
 
 namespace Battleship
@@ -11,8 +12,7 @@ namespace Battleship
         public int Port { get; private set; }
         public Form Battlefield { get; private set; }
 
-        private readonly TcpClient client;
-        private NetworkStream stream;
+        private readonly TcpClient client;        
 
         public Client(string host, int port, Form battlefield)
         {
@@ -37,8 +37,7 @@ namespace Battleship
 
             if (client.Connected)
             {
-                WriteLog($"Connected to the server at {client.Client.RemoteEndPoint}");
-                stream = client.GetStream();
+                WriteLog($"Connected to the server at {client.Client.RemoteEndPoint}");                
                 Listen();
             }
             else
@@ -48,28 +47,27 @@ namespace Battleship
         }
 
         public void Listen()
-        {
-            var bytes = new byte[1024];
-
+        {            
             while (true)
             {
-                var bytesRead = stream.Read(bytes, 0, bytes.Length);
-                var message = Encoding.UTF8.GetString(bytes, 0, bytesRead);
-                WriteLog("Message received: " + message);
+                var packet = PacketService.ReceivePacket(client);
+
+                if (packet != null && packet.Type == "message")
+                {
+                    WriteLog("Message received: " + packet.Data);
+                }
             }
         }
 
         public void SendMessage(string message)
         {
-            if (stream != null)
-            {
-                var bytes = Encoding.UTF8.GetBytes(message);
-                stream.Write(bytes, 0, bytes.Length);
-                WriteLog("Message sent: " + message);
+            if (client != null && PacketService.SendPacket(new Packet("message", message), client))
+            {                
+                WriteLog("Message sent: " + message);                
             }
             else
             {
-                WriteLog("Cannot send message, server not connected.");
+                WriteLog("Cannot send message.");
             }
         }
 
