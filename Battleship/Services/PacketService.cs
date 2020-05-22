@@ -1,4 +1,5 @@
-﻿using Battleship.Models;
+﻿using Battleship.Enums;
+using Battleship.Models;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -26,7 +27,7 @@ namespace Battleship.Services
                 stream.Write(messageBuffer, 0, messageBuffer.Length);
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 // TODO: log
                 return false;
@@ -60,7 +61,7 @@ namespace Battleship.Services
             catch (Exception ex)
             {
                 // TODO: log    
-                return new Packet("error", ex.Message);
+                return new Packet(PacketType.Error, ex.Message);
             }            
         }
     }

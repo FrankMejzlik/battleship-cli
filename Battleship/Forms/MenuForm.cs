@@ -11,30 +11,30 @@ namespace Battleship.Forms
             InitializeComponent();
         }
 
-        private void startGameButton_Click(object sender, EventArgs e)
+        private void StartGame(object sender, EventArgs e)
         {
-            var battlefield = new BattlefieldForm();
-            battlefield.Text += " - server";
-            battlefield.Show();
+            var form = new ServerForm();
+            form.Text += " - server";
+            form.Show();
 
-            var server = new Server(6666, battlefield);
+            var server = new Server(6666, form);
             var serverThread = new Thread(server.Start);
             serverThread.Start();
 
-            battlefield.SetServer(server);
+            form.SetServer(server);
         }
 
-        private void joinGameButton_Click(object sender, EventArgs e)
+        private void JoinGame(object sender, EventArgs e)
         {
-            var battlefield = new BattlefieldForm();
-            battlefield.Text += " - client";
-            battlefield.Show();
+            var form = new ClientForm();
+            form.Text += " - client";
+            form.Show();
 
-            var client = new Client("localhost", 6666, battlefield);
+            var client = new Client("localhost", 6666, form);
             var clientThread = new Thread(client.Connect);
             clientThread.Start();
 
-            battlefield.SetClient(client);            
+            form.SetClient(client);            
         }
     }
 }

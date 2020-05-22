@@ -1,13 +1,14 @@
-﻿using Newtonsoft.Json;
+﻿using Battleship.Enums;
+using Newtonsoft.Json;
 
 namespace Battleship.Models
 {
     public class Packet
     {
-        public string Type { get; set; }
+        public PacketType Type { get; set; }
         public string Data { get; set; }
 
-        public Packet(string type = "", string data = "")
+        public Packet(PacketType type, string data = "")
         {
             Type = type;
             Data = data;

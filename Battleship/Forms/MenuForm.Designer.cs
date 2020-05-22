@@ -42,7 +42,7 @@
             this.startGameButton.TabIndex = 0;
             this.startGameButton.Text = "Start Game";
             this.startGameButton.UseVisualStyleBackColor = true;
-            this.startGameButton.Click += new System.EventHandler(this.startGameButton_Click);
+            this.startGameButton.Click += new System.EventHandler(this.StartGame);
             // 
             // joinGameButton
             // 
@@ -54,7 +54,7 @@
             this.joinGameButton.TabIndex = 1;
             this.joinGameButton.Text = "Join Game";
             this.joinGameButton.UseVisualStyleBackColor = true;
-            this.joinGameButton.Click += new System.EventHandler(this.joinGameButton_Click);
+            this.joinGameButton.Click += new System.EventHandler(this.JoinGame);
             // 
             // MenuForm
             // 

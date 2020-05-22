@@ -1,6 +1,6 @@
 ﻿namespace Battleship.Forms
 {
-    partial class BattlefieldForm
+    partial class ClientForm
     {
         /// <summary>
         /// Required designer variable.
@@ -36,16 +36,16 @@
             // 
             // log
             // 
-            this.log.Location = new System.Drawing.Point(12, 309);
+            this.log.Location = new System.Drawing.Point(12, 548);
             this.log.Multiline = true;
             this.log.Name = "log";
-            this.log.Size = new System.Drawing.Size(960, 140);
+            this.log.Size = new System.Drawing.Size(976, 140);
             this.log.TabIndex = 0;
             // 
             // sendMessageLabel
             // 
             this.sendMessageLabel.AutoSize = true;
-            this.sendMessageLabel.Location = new System.Drawing.Point(9, 275);
+            this.sendMessageLabel.Location = new System.Drawing.Point(12, 525);
             this.sendMessageLabel.Name = "sendMessageLabel";
             this.sendMessageLabel.Size = new System.Drawing.Size(80, 13);
             this.sendMessageLabel.TabIndex = 1;
@@ -53,32 +53,33 @@
             // 
             // sendMessageTextBox
             // 
-            this.sendMessageTextBox.Location = new System.Drawing.Point(92, 272);
+            this.sendMessageTextBox.Location = new System.Drawing.Point(95, 522);
             this.sendMessageTextBox.Name = "sendMessageTextBox";
             this.sendMessageTextBox.Size = new System.Drawing.Size(214, 20);
             this.sendMessageTextBox.TabIndex = 2;
             // 
             // sendMessageButton
             // 
-            this.sendMessageButton.Location = new System.Drawing.Point(312, 270);
+            this.sendMessageButton.Location = new System.Drawing.Point(315, 520);
             this.sendMessageButton.Name = "sendMessageButton";
-            this.sendMessageButton.Size = new System.Drawing.Size(75, 23);
+            this.sendMessageButton.Size = new System.Drawing.Size(78, 23);
             this.sendMessageButton.TabIndex = 3;
             this.sendMessageButton.Text = "Send";
             this.sendMessageButton.UseVisualStyleBackColor = true;
-            this.sendMessageButton.Click += new System.EventHandler(this.sendMessageButton_Click);
+            this.sendMessageButton.Click += new System.EventHandler(this.SendMessage);
             // 
-            // BattlefieldForm
+            // ClientForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(984, 461);
+            this.ClientSize = new System.Drawing.Size(1000, 700);
             this.Controls.Add(this.sendMessageButton);
             this.Controls.Add(this.sendMessageTextBox);
             this.Controls.Add(this.sendMessageLabel);
             this.Controls.Add(this.log);
-            this.Name = "BattlefieldForm";
+            this.Name = "ClientForm";
             this.Text = "Battleship";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.OnFormClosing);
             this.ResumeLayout(false);
             this.PerformLayout();
 

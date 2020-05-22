@@ -1,0 +1,17 @@
+﻿spustí server
+spustí client
+
+server i client umisťují lodě
+- oba zmáčknou ready
+- client odešle serveru pozice lodí
+- náhodně se zjistí kdo začíná, pokud začíná client, odešle se mu packet že hraje
+
+hraje client
+- vystřelí na server, odešle se packet serveru kam vystřelil
+- server vyhodnotí a vrátí packet fire response
+- pokud je response HIT nebo SINK, jede znovu
+- pokud je response WATER, ukončeje se tah
+
+hraje server 
+- vystřelí na clienta, zjistí jestli se trefí u sebe
+- pošle clientovi packet kam vystřelil a s jakým výsledkem
