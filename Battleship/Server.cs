@@ -225,7 +225,7 @@ namespace Battleship
             }
             else
             {
-                var fieldOnCoords = shipOnCoords.Fields.First(field => field.Coords == coordsFired);                
+                var fieldOnCoords = shipOnCoords.Fields.First(field => field.Coords == coordsFired);
 
                 fieldOnCoords.IsRevealed = true;
                 button.BackColor = Color.Red;
@@ -237,10 +237,10 @@ namespace Battleship
                     fireResponse = FireResponseType.HitAndSunk;
                 }
                 else
-                {                    
+                {
                     fireResponse = FireResponseType.Hit;
                 }
-            }            
+            }
 
             return fireResponse;
         }

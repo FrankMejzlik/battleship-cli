@@ -1,4 +1,4 @@
-﻿spustí server
+spustí server
 spustí client
 
 server i client umisťují lodě
