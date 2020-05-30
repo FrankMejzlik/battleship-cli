@@ -38,7 +38,7 @@ namespace Battleship.Enums
                 case FireResponseType.HitAndSunk:
                     return "HIT AND SUNK!";
                 default:
-                    return "";
+                    return string.Empty;
             }
         }
     }

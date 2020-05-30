@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Battleship.UI;
+using System;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -6,8 +7,11 @@ namespace Battleship.Forms
 {
     public partial class MenuForm : Form
     {
-        public MenuForm()
+        public WinFormsUi Wfui { get; set; }
+
+        public MenuForm(WinFormsUi wfui)
         {
+            Wfui = wfui;
             InitializeComponent();
         }
 
@@ -17,11 +21,11 @@ namespace Battleship.Forms
             form.Text += " - server";
             form.Show();
 
-            var server = new Server(6666, form);
-            var serverThread = new Thread(server.Start);
-            serverThread.Start();
+            //var server = new Server(6666, form);
+            //var serverThread = new Thread(server.Start);
+            //serverThread.Start();
 
-            form.SetServer(server);
+            //form.SetServer(server);
         }
 
         private void JoinGame(object sender, EventArgs e)
@@ -30,11 +34,12 @@ namespace Battleship.Forms
             form.Text += " - client";
             form.Show();
 
-            var client = new Client("localhost", 6666, form);
-            var clientThread = new Thread(client.Connect);
-            clientThread.Start();
+            
+            //var client = new Client("localhost", 6666, form);
+            //var clientThread = new Thread(client.Connect);
+            //clientThread.Start();
 
-            form.SetClient(client);            
+            //form.SetClient(client);            
         }
     }
 }

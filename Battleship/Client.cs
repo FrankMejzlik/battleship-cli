@@ -1,49 +1,78 @@
 ﻿using Battleship.Enums;
 using Battleship.Models;
 using Battleship.Services;
+using Battleship.UI;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
 using System.Net.Sockets;
-using System.Windows.Forms;
+using System.Text;
 
 namespace Battleship
 {
-    public class Client
+    public class Client : Logic
     {
-        public string Host { get; private set; }
-        public int Port { get; private set; }
-        public Form Form { get; private set; }
-
-        private readonly TcpClient client;
-
-        public Client(string host, int port, Form form)
+        public Client(string host, int port, IUi ui)
         {
+            ShouldRun = true;
+
             Host = host;
             Port = port;
-            Form = form;
+            Ui = ui;
 
+            // We are the client
             client = new TcpClient();
+        }
+
+        public void Shutdown()
+        {
+            ShouldRun = false;
+
+            // Write client game log
+            System.IO.File.WriteAllText(Config.ClientGameLogFilepath, GameLog.ToString());
+
+            try
+            {
+                client.GetStream().Close();
+                client.Close();
+            }
+            catch (ObjectDisposedException)
+            { }
         }
 
         public void Connect()
         {
             try
             {
-                WriteLog($"Connecting to the server...");
+                var msg = $"Connecting to the server...";
+
+                // UI => CLIENT_CONNECTING
+                Ui.GotoState(eUiState.CLIENT_CONNECTING, msg);
+                WriteLog(msg);
+
                 client.Connect(Host, Port);
             }
             catch (SocketException ex)
             {
-                WriteLog($"Cannot connect to the server: {ex.Message}");
+                var msg = $"Cannot connect to the server: {ex.Message}";
+
+                // UI => FINAL
+                Ui.GotoState(eUiState.FINAL, msg);
+                WriteLog(msg);
             }
 
             if (client.Connected)
             {
-                WriteLog($"Connected to the server at {client.Client.RemoteEndPoint}");
-                PlaceShips(); // TODO: after ready button clicked
+                var msg = $"Connected to the server at {client.Client.RemoteEndPoint}";
+
+                // UI => PLACING_SHIPS
+                Ui.GotoState(eUiState.PLACING_SHIPS, msg);
+                WriteLog(msg);
+
+                // TODO: Simulated placing
+                PlaceShips();
+
+                // Now listen to the server
                 Listen();
             }
             else
@@ -52,15 +81,10 @@ namespace Battleship
             }
         }
 
-        public void Disconnect()
-        {
-            client.GetStream().Close();
-            client.Close();
-        }
 
         public void Listen()
         {
-            while (true) // TODO: while (isRunning)
+            while (ShouldRun)
             {
                 var packet = PacketService.ReceivePacket(client);
 
@@ -79,8 +103,16 @@ namespace Battleship
                         WriteLog($"Enemy fired to field {coordsFired}");
                         WriteLog(fireResponse);
 
-                        var button = Form.Controls.Find($"clientField{coordsFired}", false).First();
-                        button.BackColor = (fireResponse != "WATER!") ? Color.Red : Color.LightBlue;
+                        // UI -> Handle FireAt
+                        var coords = Utils.ToNumericCoordinates(coordsFired);
+                        if (fireResponse == "WATER")
+                        {
+                            Ui.HandleHitAt(coords.Item1, coords.Item2);
+                        }
+                        else
+                        {
+                            Ui.HandleHitAt(coords.Item1, coords.Item2);
+                        }
                     }
                     else if (packet.Type == PacketType.FireResponse)
                     {
@@ -145,10 +177,10 @@ namespace Battleship
         {
             foreach (var field in ship.Fields)
             {
-                var button = Form.Controls.Find($"clientField{field.Coords}", false).First();
+                //var button = Form.Controls.Find($"clientField{field.Coords}", false).First();
 
-                button.BackColor = Color.Black;
-                field.IsShip = true;
+                //button.BackColor = Color.Black;
+                //field.IsShip = true;
             }
         }
 
@@ -174,16 +206,18 @@ namespace Battleship
 
         private void WriteLog(string text)
         {
-            var log = Form.Controls["log"];
-
-            if (log.InvokeRequired)
-            {
-                Form.Invoke(new WriteLogCallback(WriteLog), new object[] { text });
-            }
-            else
-            {
-                log.Text += (text + Environment.NewLine);
-            }
+            GameLog.Append(text);
         }
+
+        /*
+         * Member variables
+         */
+        private bool ShouldRun { get; set; } = true;
+        private StringBuilder GameLog { get; set; } = new StringBuilder();
+        private string Host { get; set; }
+        private int Port { get; set; }
+        private IUi Ui { get; set; }
+
+        private readonly TcpClient client;
     }
 }

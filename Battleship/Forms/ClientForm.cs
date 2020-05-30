@@ -79,14 +79,14 @@ namespace Battleship.Forms
         {
             var message = sendMessageTextBox.Text;
 
-            if (message == "")
+            if (message == string.Empty)
             {
                 return;
             }
 
             Client?.SendMessage(message);
 
-            sendMessageTextBox.Text = "";
+            sendMessageTextBox.Text = string.Empty;
         }
 
         private void OnFormClosing(object sender, FormClosingEventArgs e)

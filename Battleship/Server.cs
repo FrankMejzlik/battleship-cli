@@ -1,39 +1,51 @@
 ﻿using Battleship.Enums;
 using Battleship.Models;
 using Battleship.Services;
+using Battleship.UI;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Windows.Forms;
+using System.Text;
 
 namespace Battleship
 {
-    public class Server
+    public interface Logic
     {
-        public int Port { get; private set; }
-        public Form Form { get; private set; }
-        public List<Ship> ServerShips { get; set; }
-        public List<Ship> ClientShips { get; set; }
+        public void Shutdown();
+    }
 
-        private readonly TcpListener listener;
-        private TcpClient client;
-
-        public Server(int port, Form form)
+    public class Server : Logic
+    {
+        public Server(int port, IUi ui)
         {
-            Port = port;
-            Form = form;
+            ShouldRun = true;
 
+            Port = port;
+            Ui = ui;
+
+            // We are the server
             listener = new TcpListener(IPAddress.Any, Port);
         }
 
         public void Shutdown()
         {
-            client?.GetStream()?.Close();
-            client?.Close();
+            // Set the running flag
+            ShouldRun = false;
+
+            // Write client game log
+            System.IO.File.WriteAllText(Config.ClientGameLogFilepath, GameLog.ToString());
+
+            try
+            {
+                client.GetStream().Close();
+                client.Close();
+            }
+            catch (ObjectDisposedException)
+            { }
+
             listener.Stop();
         }
 
@@ -59,13 +71,16 @@ namespace Battleship
             client = listener.AcceptTcpClient();
             WriteLog($"New connection from {client.Client.RemoteEndPoint}.");
 
-            PlaceShips(); // TODO: after ready button clicked
+            // TODO: Simulated placing
+            PlaceShips();
+
+            // Now listen to the client
             Listen();
         }
 
         public void Listen()
         {
-            while (true) // TODO: while (isRunning)
+            while (ShouldRun)
             {
                 var packet = PacketService.ReceivePacket(client);
 
@@ -147,9 +162,9 @@ namespace Battleship
         {
             foreach (var field in ship.Fields)
             {
-                var button = Form.Controls.Find($"serverField{field.Coords}", false).First();
+                var coords = Utils.ToNumericCoordinates(field.Coords);
+                Ui.HandlePlaceShipAt(coords.Item1, coords.Item2);
 
-                button.BackColor = Color.Black;
                 field.IsShip = true;
             }
         }
@@ -179,10 +194,12 @@ namespace Battleship
             else
             {
                 var fieldOnCoords = shipOnCoords.Fields.First(field => field.Coords == coordsFired);
-                var button = Form.Controls.Find($"clientField{coordsFired}", false).First();
+
+                // UI
+                var coords = Utils.ToNumericCoordinates(coordsFired);
+                Ui.HandleHitAt(coords.Item1, coords.Item2);
 
                 fieldOnCoords.IsRevealed = true;
-                button.BackColor = Color.Red;
 
                 var isShipDestroyed = !shipOnCoords.Fields.Any(field => field.IsRevealed == false);
 
@@ -210,7 +227,8 @@ namespace Battleship
         {
             FireResponseType fireResponse;
 
-            var button = Form.Controls.Find($"serverField{coordsFired}", false).First();
+            var coords = Utils.ToNumericCoordinates(coordsFired);
+
 
             var shipOnCoords = ServerShips.FirstOrDefault(ship =>
                ship.Fields.Any(field =>
@@ -220,15 +238,15 @@ namespace Battleship
 
             if (shipOnCoords == null)
             {
+                Ui.HandleMisstAt(coords.Item1, coords.Item2);
+
                 fireResponse = FireResponseType.Water;
-                button.BackColor = Color.LightBlue;
             }
             else
             {
                 var fieldOnCoords = shipOnCoords.Fields.First(field => field.Coords == coordsFired);
 
-                fieldOnCoords.IsRevealed = true;
-                button.BackColor = Color.Red;
+                Ui.HandleHitAt(coords.Item1, coords.Item2);
 
                 var isShipDestroyed = !shipOnCoords.Fields.Any(field => field.IsRevealed == false);
 
@@ -260,16 +278,20 @@ namespace Battleship
 
         private void WriteLog(string text)
         {
-            var log = Form.Controls["log"];
-
-            if (log.InvokeRequired)
-            {
-                Form.Invoke(new WriteLogCallback(WriteLog), new object[] { text });
-            }
-            else
-            {
-                log.Text += (text + Environment.NewLine);
-            }
+            GameLog.Append(text);
         }
+
+        /*
+         * Member variables
+         */
+        public bool ShouldRun { get; set; } = true;
+        private StringBuilder GameLog { get; set; } = new StringBuilder();
+        private int Port { get; set; }
+        private IUi Ui { get; set; }
+        private List<Ship> ServerShips { get; set; }
+        private List<Ship> ClientShips { get; set; }
+
+        private readonly TcpListener listener;
+        private TcpClient client;
     }
 }
