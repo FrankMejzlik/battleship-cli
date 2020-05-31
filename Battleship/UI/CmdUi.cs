@@ -11,9 +11,14 @@ namespace Battleship.UI
     public enum eCellState
     {
         SHIP,
-        WATER,
-        HIT,
-        UNKNOWN
+
+        MISSED_HIM,
+        HIT_HIM,
+
+        UNKNOWN,
+
+        MISSED_ME,
+        HIT_ME
     };
     /**
      * Command line UI for the game.
@@ -33,7 +38,7 @@ namespace Battleship.UI
             {
                 for (int y = 0; y < FieldH; ++y)
                 {
-                    myField[x, y] = eCellState.WATER;
+                    myField[x, y] = eCellState.UNKNOWN;
                 }
             }
 
@@ -48,7 +53,7 @@ namespace Battleship.UI
         }
         public void Shutdown()
         {
-            Logic.Shutdown();
+            Logic?.Shutdown();
             ShouldRun = false;
         }
 
@@ -58,12 +63,7 @@ namespace Battleship.UI
             while (ShouldRun)
             {
                 // Let the active state handle it
-                bool swapNeeded = State.Update(this);
-                if (swapNeeded)
-                {
-                    // "Draw" frame buffer into the terminal
-                    SwapBuffers();
-                }
+                State.Update(this);
             }
         }
 
@@ -73,6 +73,12 @@ namespace Battleship.UI
             while (!Console.KeyAvailable)
             {
                 DoCheck();
+
+                if (ShouldUnblock)
+                {
+                    ShouldUnblock = false;
+                    return new ConsoleKeyInfo();
+                }
 
                 Thread.Sleep(50);
             }
@@ -120,17 +126,19 @@ namespace Battleship.UI
                 Logger.LogE($"Error getting unknown state: {newState}");
                 break;
             }
+
+            ShouldUnblock = true;
         }
 
 
-        public void HandleHitAt(int x, int y)
+        public void HandleHitHimAt(int x, int y)
         {
-            myField[x, y] = eCellState.HIT;
+            enemyField[x, y] = eCellState.HIT_HIM;
         }
 
-        public void HandleMisstAt(int x, int y)
+        public void HandleMissHimtAt(int x, int y)
         {
-            myField[x, y] = eCellState.WATER;
+            enemyField[x, y] = eCellState.MISSED_HIM;
         }
 
         public void HandlePlaceShipAt(int x, int y)
@@ -138,7 +146,15 @@ namespace Battleship.UI
             myField[x, y] = eCellState.SHIP;
         }
 
+        public void HandleMissedMe(int x, int y)
+        {
+            myField[x, y] = eCellState.MISSED_ME;
+        }
 
+        public void HandleHitMe(int x, int y)
+        {
+            myField[x, y] = eCellState.HIT_ME;
+        }
 
         private void HandleWindowChange()
         {
@@ -165,15 +181,21 @@ namespace Battleship.UI
         {
             switch (state)
             {
-            case eCellState.WATER:
+            case eCellState.MISSED_HIM:
                 return '~';
 
             case eCellState.UNKNOWN:
                 return ' ';
             case eCellState.SHIP:
-                return '#';
-            case eCellState.HIT:
+                return 'O';
+            case eCellState.HIT_HIM:
                 return 'X';
+            case eCellState.MISSED_ME:
+                return '*';
+                case eCellState.HIT_ME:
+                return 'X';
+
+                
             }
             return ' ';
         }
@@ -220,19 +242,21 @@ namespace Battleship.UI
             {
                 Console.Title = "Battleships: -- CLIENT -- ";
             }
-        }
 
+        }
         /**
          * Member variables
          */
         public ICmdUiState State { get; set; } = new InitialState();
+
+        public bool ShouldUnblock {get;set;} = false;
 
         public eCellState[,] myField = new eCellState[Config.FieldHeight, Config.FieldWidth];
         public eCellState[,] enemyField = new eCellState[Config.FieldHeight, Config.FieldWidth];
         public int FieldW { get; set; } = Config.FieldWidth;
         public int FieldH { get; set; } = Config.FieldHeight;
 
-        private Logic Logic { get; set; }
+        public Logic Logic { get; set; }
 
         public bool ShouldRun { get; set; } = true;
 

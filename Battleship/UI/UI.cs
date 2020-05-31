@@ -66,10 +66,12 @@ namespace Battleship.UI
         public void SetLogic(Logic s);
 
 
-        public void HandleHitAt(int x, int y);
+        public void HandleHitHimAt(int x, int y);
 
-        public void HandleMisstAt(int x, int y);
+        public void HandleMissHimtAt(int x, int y);
 
         public void HandlePlaceShipAt(int x, int y);
+        public void HandleMissedMe(int x, int y);
+        public void HandleHitMe(int x, int y);
     }
 }

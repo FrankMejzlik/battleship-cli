@@ -19,12 +19,12 @@ namespace Battleship.UI
             return true;
         }
 
-        protected void HandleInput(string keyStr)
+        protected void HandleInput(CmdUi owner, string keyStr)
         {
             switch (keyStr)
             {
             case "UpArrow":
-                CurPos = (CurPos.Item1, Math.Max(CurPos.Item2 - 1,0));
+                CurPos = (CurPos.Item1, Math.Max(CurPos.Item2 - 1, 0));
                 break;
             case "DownArrow":
                 CurPos = (CurPos.Item1, Math.Min(CurPos.Item2 + 1, Config.FieldHeight - 1));
@@ -34,6 +34,16 @@ namespace Battleship.UI
                 break;
             case "RightArrow":
                 CurPos = (Math.Min(CurPos.Item1 + 1, Config.FieldWidth - 1), CurPos.Item2);
+                break;
+
+            // Shoot
+            case "Spacebar":
+                // If your turn, just shoot
+                if (owner.State is YourTurnState)
+                {
+                    // Fire! Logic is branched depending on class of the Logic behind.
+                    owner.Logic.FireAt(CurPos.Item2, CurPos.Item1);
+                }
                 break;
             }
         }
@@ -81,12 +91,12 @@ namespace Battleship.UI
 
                     var content = field[iy, ix];
 
-                    if (content == eCellState.SHIP || content == eCellState.HIT)
+                    if (content == eCellState.SHIP || content == eCellState.HIT_HIM || content == eCellState.HIT_ME)
                     {
                         owner.frameBuffer[originX + ixx + 0, originY + iyy + 1] = owner.CellStateToString(content);
                         owner.frameBuffer[originX + ixx + 1, originY + iyy + 1] = owner.CellStateToString(content);
                         owner.frameBuffer[originX + ixx + 2, originY + iyy + 1] = owner.CellStateToString(content);
-                    } 
+                    }
                     else
                     {
                         owner.frameBuffer[originX + ixx + 0, originY + iyy + 1] = ' ';
@@ -129,8 +139,7 @@ namespace Battleship.UI
             Console.WriteLine("Working...");
             Thread.Sleep(50);
 
-            // No rendering needed
-            return false;
+            return true;
         }
     }
 
@@ -204,6 +213,7 @@ namespace Battleship.UI
                     if (line.Length != 0)
                     {
                         var toks = line.Split(':');
+                        IP = toks[0];
                         try
                         {
                             port = int.Parse(toks[1]);
@@ -230,8 +240,7 @@ namespace Battleship.UI
             // Go to interstate
             owner.GotoState(eUiState.INTER, "From INITIAL.");
 
-            // No buffer swap needed
-            return false;
+            return true;
         }
     }
 
@@ -243,8 +252,7 @@ namespace Battleship.UI
             Console.WriteLine("Connecting to the server...");
             Thread.Sleep(50);
 
-            // No buffer swap needed
-            return false;
+            return true;
         }
     }
 
@@ -256,8 +264,7 @@ namespace Battleship.UI
             Console.WriteLine("Waiting for the client to connect...");
             Thread.Sleep(50);
 
-            // No buffer swap needed
-            return false;
+            return true;
         }
     }
 
@@ -277,7 +284,7 @@ namespace Battleship.UI
             owner.SwapBuffers();
 
             var input = owner.PollKey();
-            HandleInput(input.Key.ToString());
+            HandleInput(owner, input.Key.ToString());
 
             return true;
         }
@@ -287,8 +294,6 @@ namespace Battleship.UI
     {
         public override bool Update(CmdUi owner)
         {
-            //var input = owner.pollKey();
-
             // Draw grid for me
             drawGrid(owner, 1, 0, "ME:", owner.myField, false);
 
@@ -296,9 +301,12 @@ namespace Battleship.UI
             // Active cursor here -> you're shooting
             drawGrid(owner, owner.FieldW * 4 + 4, 0, "ENEMY: ", owner.enemyField, true);
 
-            drawStatus(owner, "YOUR TURN! Shoot!");
+            drawStatus(owner, "YOUR TURN! Aim with arrows and SHOOT with the SPACE key!");
 
-            // Buffer swap needed
+            owner.SwapBuffers();
+            var input = owner.PollKey();
+            HandleInput(owner, input.Key.ToString());
+
             return true;
         }
     }
@@ -307,8 +315,6 @@ namespace Battleship.UI
     {
         public override bool Update(CmdUi owner)
         {
-            var input = owner.PollKey();
-
             // Draw grid for me
             drawGrid(owner, 1, 0, "ME:", owner.myField, false);
 
@@ -317,7 +323,9 @@ namespace Battleship.UI
 
             drawStatus(owner, "OPPONENT'S TURN.");
 
-            // Buffer swap needed
+            owner.SwapBuffers();
+            var input = owner.PollKey();
+
             return true;
         }
     }

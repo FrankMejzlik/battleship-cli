@@ -1,4 +1,4 @@
-﻿using Battleship.Enums;
+﻿
 using Battleship.Models;
 using Newtonsoft.Json;
 using System;
@@ -29,7 +29,7 @@ namespace Battleship.Services
             }
             catch (Exception ex)
             {
-                // TODO: log
+                Logger.LogE($"Send packet failed: {ex.Message}");
                 return false;
             }
         }
@@ -61,7 +61,7 @@ namespace Battleship.Services
             catch (Exception ex)
             {
                 // TODO: log    
-                return new Packet(PacketType.ERROR, ex.Message);
+                return new Packet(ePacketType.ERROR, ex.Message);
             }            
         }
     }

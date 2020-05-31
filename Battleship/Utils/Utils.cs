@@ -13,6 +13,7 @@ namespace Battleship
 
         public static string GetCoords(int x, int y)
         {
+            ++x;
             string str = string.Empty;
             while (x > 0)
             {
@@ -41,7 +42,7 @@ namespace Battleship
                 i = (26 * i) + ALPHABET.IndexOf(ce.Current) + 1;
 
 
-            return (i, int.Parse(second));
+            return (i - 1, int.Parse(second));
         }
     }
 }

@@ -1,5 +1,4 @@
-﻿using Battleship.Enums;
-using Battleship.Models;
+﻿using Battleship.Models;
 using Battleship.Services;
 using Battleship.UI;
 using Newtonsoft.Json;
@@ -74,7 +73,7 @@ namespace Battleship
                 PlaceShips();
 
                 // Now listen to the server
-                Listen();
+                ListenToTheServer();
             }
             else
             {
@@ -83,7 +82,7 @@ namespace Battleship
         }
 
 
-        public void Listen()
+        public void ListenToTheServer()
         {
             while (ShouldRun)
             {
@@ -92,11 +91,29 @@ namespace Battleship
                 // Act on recieving a valid packet
                 if (packet != null)
                 {
-                    if (packet.Type == PacketType.MESSAGE)
+                    // Message 
+                    if (packet.Type == ePacketType.MESSAGE)
                     {
                         WriteLog($"Message received: {packet.Data}");
                     }
-                    else if (packet.Type == PacketType.FIRE)
+                    // Your turn
+                    else if (packet.Type == ePacketType.YOUR_TURN)
+                    {
+                        WriteLog($"Command to YOUR TURN.");
+
+                        // UI => Handle MyTurn
+                        Ui.GotoState(eUiState.YOUR_TURN);
+                    }
+                    // Opponent's turn
+                    else if (packet.Type == ePacketType.OPPONENTS_TURN)
+                    {
+                        WriteLog($"Command to MY TURN.");
+
+                        // UI => Handle MyTurn
+                        Ui.GotoState(eUiState.OPPONENTS_TURN);
+                    }
+                    // Server shot at me
+                    else if (packet.Type == ePacketType.FIRE)
                     {
                         var data = packet.Data.Split('=');
                         var coordsFired = data[0];
@@ -105,21 +122,42 @@ namespace Battleship
                         WriteLog($"Enemy fired to field {coordsFired}");
                         WriteLog(fireResponse);
 
-                        // UI => Handle FireAt
+
                         var coords = Utils.ToNumericCoordinates(coordsFired);
-                        if (fireResponse == "WATER")
+                        // ---------------------------------------------------------
+                        // Handle UI
+                        if (fireResponse == Config.WaterString)
                         {
-                            Ui.HandleHitAt(coords.Item1, coords.Item2);
+                            Ui.HandleMissedMe(coords.Item1, coords.Item2);
                         }
                         else
                         {
-                            Ui.HandleHitAt(coords.Item1, coords.Item2);
+                            Ui.HandleHitMe(coords.Item1, coords.Item2);
                         }
+                        // ---------------------------------------------------------
+
                     }
-                    else if (packet.Type == PacketType.FIRE_REPONSE)
+                    // I shot at server and he responded
+                    else if (packet.Type == ePacketType.FIRE_REPONSE)
                     {
-                        WriteLog(packet.Data);
-                        // TODO: zjistit, který button je bílý (nebo inprogress) a podle response ho obarvit namodro nebo načerveno
+                        var data = packet.Data.Split('=');
+                        var coordsFired = data[0];
+                        var fireResponse = data[1];
+
+                        WriteLog(fireResponse);
+
+                        // ---------------------------------------------------------
+                        // Handle UI
+                        var coords = Utils.ToNumericCoordinates(coordsFired);
+                        if (fireResponse == Config.WaterString)
+                        {
+                            Ui.HandleMissHimtAt(coords.Item1, coords.Item2);
+                        }
+                        else
+                        {
+                            Ui.HandleHitHimAt(coords.Item1, coords.Item2);
+                        }
+                        // ---------------------------------------------------------
                     }
                 }
             }
@@ -138,7 +176,7 @@ namespace Battleship
             });
 
 
-            
+
 
             clientShips.Add(new Ship()
             {
@@ -148,7 +186,7 @@ namespace Battleship
                     new Field(0, 3)
                 }
             });
-            
+
             clientShips.Add(new Ship()
             {
                 Fields = new List<Field>()
@@ -158,7 +196,7 @@ namespace Battleship
                     new Field(5, 6)
                 }
             });
-            
+
             clientShips.Add(new Ship()
             {
                 Fields = new List<Field>()
@@ -195,18 +233,28 @@ namespace Battleship
         public void SetShips(List<Ship> clientShips)
         {
             var clientShipsSerialized = JsonConvert.SerializeObject(clientShips);
-            PacketService.SendPacket(new Packet(PacketType.SetClientShips, clientShipsSerialized), client);
+            if (!PacketService.SendPacket(new Packet(ePacketType.SET_CLIENT_SHIPS, clientShipsSerialized), client))
+            {
+                Shutdown();
+            }
         }
 
         public void Fire(string coords)
         {
-            PacketService.SendPacket(new Packet(PacketType.FIRE, coords), client);
+            if (!PacketService.SendPacket(new Packet(ePacketType.FIRE, coords), client))
+            {
+                Shutdown();
+            }
+
             WriteLog($"Firing to field {coords}");
         }
 
         public void SendMessage(string message)
         {
-            PacketService.SendPacket(new Packet(PacketType.MESSAGE, message), client);
+            if (!PacketService.SendPacket(new Packet(ePacketType.MESSAGE, message), client))
+            {
+                Shutdown();
+            }
             WriteLog("Message sent: " + message);
         }
 
@@ -215,6 +263,15 @@ namespace Battleship
         private void WriteLog(string text)
         {
             GameLog.Append(text);
+        }
+
+        public void FireAt(int x, int y)
+        {
+
+            // Convert to excel coordinates
+            var strCoords = Utils.GetCoords(x, y);
+
+            Fire(strCoords);
         }
 
         /*

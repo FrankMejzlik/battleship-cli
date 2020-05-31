@@ -13,14 +13,14 @@ namespace Battleship.UI
         {
             Form = form;
         }
-        void IUi.HandleHitAt(int x, int y)
+        void IUi.HandleHitHimAt(int x, int y)
         {
             string coordsFired = $"{x}, {y}";
             var button = Form.Controls.Find($"clientField{coordsFired}", false).First();
             button.BackColor = Color.Red;
         }
 
-        void IUi.HandleMisstAt(int x, int y)
+        void IUi.HandleMissHimtAt(int x, int y)
         {
             string coordsFired = $"{x}, {y}";
             var button = Form.Controls.Find($"clientField{coordsFired}", false).First();
@@ -52,6 +52,16 @@ namespace Battleship.UI
         }
 
         public void GotoState(eUiState state, string msg = "")
+        {
+            throw new NotImplementedException();
+        }
+
+        public void HandleMissedMe(int item1, int item2)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void HandleHitMe(int x, int y)
         {
             throw new NotImplementedException();
         }

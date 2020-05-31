@@ -1,4 +1,4 @@
-﻿using Battleship.Enums;
+﻿
 using Battleship.Models;
 using Battleship.Services;
 using Battleship.UI;
@@ -15,6 +15,7 @@ namespace Battleship
     public interface Logic
     {
         public void Shutdown();
+        void FireAt(int x, int y);
     }
 
     public class Server : Logic
@@ -79,15 +80,14 @@ namespace Battleship
             Ui.GotoState(eUiState.PLACING_SHIPS, msg);
             WriteLog(msg);
 
-
             // TODO: Simulated placing
             PlaceShips();
 
             // Now listen to the client
-            Listen();
+            ListenToTheClient();
         }
 
-        public void Listen()
+        public void ListenToTheClient()
         {
             while (ShouldRun)
             {
@@ -95,25 +95,103 @@ namespace Battleship
 
                 if (packet != null)
                 {
-                    if (packet.Type == PacketType.MESSAGE)
+                    // Message
+                    if (packet.Type == ePacketType.MESSAGE)
                     {
                         WriteLog($"Message received: {packet.Data}");
                     }
-                    else if (packet.Type == PacketType.FIRE)
+                    // Client fires at
+                    else if (packet.Type == ePacketType.FIRE)
                     {
                         var coordsFired = packet.Data;
-                        var fireResponse = FireField(coordsFired);
 
-                        WriteLog($"Enemy fired to field {coordsFired}");
-                        RespondFire(fireResponse);
+                        HandleClientFireAt(coordsFired);
                     }
-                    else if (packet.Type == PacketType.SetClientShips)
+                    // Set client ships
+                    else if (packet.Type == ePacketType.SET_CLIENT_SHIPS)
                     {
-                        ClientShips = JsonConvert.DeserializeObject<List<Ship>>(packet.Data);
-                        WriteLog($"Client set ships.");
+                        var clientShips = JsonConvert.DeserializeObject<List<Ship>>(packet.Data);
+
+                        HandleClientSetShips(clientShips);
                     }
                 }
             }
+        }
+
+        /**
+         * Client provided locations of the ships - this is start of the game itself.
+         */
+        private void HandleClientSetShips(List<Ship> clientShips)
+        {
+            ClientShips = clientShips;
+
+            WriteLog($"Client set ships.");
+
+            // Game starts here <=
+
+            if (MyTurn)
+            {
+                Ui.GotoState(eUiState.YOUR_TURN);
+                if (!PacketService.SendPacket(new Packet(ePacketType.OPPONENTS_TURN), client))
+                {
+                    Shutdown();
+                }
+            }
+            else
+            {
+                Ui.GotoState(eUiState.OPPONENTS_TURN);
+                if (!PacketService.SendPacket(new Packet(ePacketType.YOUR_TURN), client))
+                {
+                    Shutdown();
+                }
+            }
+        }
+
+        /**
+         * Handles event that client fired at the server.
+         */
+        private void HandleClientFireAt(string coordsFired)
+        {
+            var coords = Utils.ToNumericCoordinates(coordsFired);
+
+            // If not client's turn
+            if (MyTurn)
+            {
+                Logger.LogW("Client shooting while not it's turn.");
+
+                // We ignore it
+                return;
+            }
+
+            var fireResponse = FireField(coordsFired);
+
+            WriteLog($"Enemy fired to field {coordsFired}");
+
+            // Notify the client
+            if (!PacketService.SendPacket(new Packet(ePacketType.FIRE_REPONSE, $"{coordsFired}={fireResponse.ToFriendlyString()}"), client))
+            {
+                Shutdown();
+            }
+
+            WriteLog(fireResponse.ToFriendlyString());
+
+
+            // ---------------------------------------------------------
+            // Handle UI
+            if (fireResponse == eFireResponseType.WATER)
+            {
+                Ui.HandleMissedMe(coords.Item1, coords.Item2);
+            }
+            else
+            {
+                Ui.HandleHitMe(coords.Item1, coords.Item2);
+            }
+            // ---------------------------------------------------------
+
+            // -----------------
+            // Turn switch
+            TurnSwitch();
+            // -----------------
         }
 
         private void PlaceShips()
@@ -184,57 +262,77 @@ namespace Battleship
             WriteLog("Server ships have been set.");
         }
 
+        /**
+         * Server fires, result is send to the client.
+         */
         public void Fire(string coordsFired)
         {
+            var coords = Utils.ToNumericCoordinates(coordsFired);
+
             WriteLog($"Firing to field {coordsFired}");
 
-            FireResponseType fireResponse;
-
+            // Find what lies at these coordinates
             var shipOnCoords = ClientShips.FirstOrDefault(ship =>
                ship.Fields.Any(field =>
                    field.Coords.Equals(coordsFired)
                )
             );
 
+            eFireResponseType fireResponse;
+            // If server missed the client's ships
             if (shipOnCoords == null)
             {
-                fireResponse = FireResponseType.Water;
+                fireResponse = eFireResponseType.WATER;
             }
+            // It's a hit
             else
             {
                 var fieldOnCoords = shipOnCoords.Fields.First(field => field.Coords == coordsFired);
-
-                // UI
-                var coords = Utils.ToNumericCoordinates(coordsFired);
-                Ui.HandleHitAt(coords.Item1, coords.Item2);
-
                 fieldOnCoords.IsRevealed = true;
 
                 var isShipDestroyed = !shipOnCoords.Fields.Any(field => field.IsRevealed == false);
 
                 if (isShipDestroyed)
                 {
-                    fireResponse = FireResponseType.HitAndSunk;
+                    fireResponse = eFireResponseType.SUNK;
                 }
                 else
                 {
-                    fireResponse = FireResponseType.Hit;
+                    fireResponse = eFireResponseType.HIT;
                 }
             }
 
-            PacketService.SendPacket(new Packet(PacketType.FIRE, $"{coordsFired}={fireResponse.ToFriendlyString()}"), client);
+            // Tell the client what the server fired at
+            if (!PacketService.SendPacket(new Packet(ePacketType.FIRE, $"{coordsFired}={fireResponse.ToFriendlyString()}"), client))
+            {
+                Shutdown();
+            }
+
+            // ---------------------------------------------------------
+            // Handle UI
+            if (fireResponse == eFireResponseType.WATER)
+            {
+                Ui.HandleMissHimtAt(coords.Item1, coords.Item2);
+            }
+            else
+            {
+                Ui.HandleHitHimAt(coords.Item1, coords.Item2);
+            }
+            // ---------------------------------------------------------
+                        
+
+
+            // -----------------
+            // Turn switch
+            TurnSwitch();
+            // -----------------
+
             WriteLog(fireResponse.ToFriendlyString());
         }
 
-        public void RespondFire(FireResponseType fireResponse)
+        private eFireResponseType FireField(string coordsFired)
         {
-            PacketService.SendPacket(new Packet(PacketType.FIRE_REPONSE, fireResponse.ToFriendlyString()), client);
-            WriteLog(fireResponse.ToFriendlyString());
-        }
-
-        private FireResponseType FireField(string coordsFired)
-        {
-            FireResponseType fireResponse;
+            eFireResponseType fireResponse;
 
             var coords = Utils.ToNumericCoordinates(coordsFired);
 
@@ -247,25 +345,20 @@ namespace Battleship
 
             if (shipOnCoords == null)
             {
-                Ui.HandleMisstAt(coords.Item1, coords.Item2);
-
-                fireResponse = FireResponseType.Water;
+                fireResponse = eFireResponseType.WATER;
             }
             else
             {
                 var fieldOnCoords = shipOnCoords.Fields.First(field => field.Coords == coordsFired);
-
-                Ui.HandleHitAt(coords.Item1, coords.Item2);
-
                 var isShipDestroyed = !shipOnCoords.Fields.Any(field => field.IsRevealed == false);
 
                 if (isShipDestroyed)
                 {
-                    fireResponse = FireResponseType.HitAndSunk;
+                    fireResponse = eFireResponseType.SUNK;
                 }
                 else
                 {
-                    fireResponse = FireResponseType.Hit;
+                    fireResponse = eFireResponseType.HIT;
                 }
             }
 
@@ -279,7 +372,10 @@ namespace Battleship
                 return;
             }
 
-            PacketService.SendPacket(new Packet(PacketType.MESSAGE, message), client);
+            if (!PacketService.SendPacket(new Packet(ePacketType.MESSAGE, message), client))
+            {
+                Shutdown();
+            }
             WriteLog("Message sent: " + message);
         }
 
@@ -290,9 +386,41 @@ namespace Battleship
             GameLog.Append(text);
         }
 
+        private void TurnSwitch()
+        {
+            MyTurn = !MyTurn;
+
+            Packet p;
+            if (MyTurn)
+            {
+                Ui.GotoState(eUiState.YOUR_TURN);
+                p = new Packet(ePacketType.OPPONENTS_TURN);
+            }
+            else
+            {
+                Ui.GotoState(eUiState.OPPONENTS_TURN);
+                p = new Packet(ePacketType.YOUR_TURN);
+            }
+
+            if (!PacketService.SendPacket(p, client))
+            {
+                Shutdown();
+            }
+        }
+
+        public void FireAt(int x, int y)
+        {
+            // Convert to excel coordinates
+            var strCoords = Utils.GetCoords(x, y);
+
+            Fire(strCoords);
+        }
+
         /*
          * Member variables
          */
+        private bool MyTurn { get; set; } = false;
+
         public bool ShouldRun { get; set; } = true;
         private StringBuilder GameLog { get; set; } = new StringBuilder();
         private int Port { get; set; }
