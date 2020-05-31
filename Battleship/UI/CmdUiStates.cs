@@ -332,6 +332,11 @@ namespace Battleship.UI
 
     class FinalState : ICmdUiState
     {
+        public FinalState(string m)
+        {
+            msg = m;
+        }
+
         public bool Update(CmdUi owner)
         {
             Console.Clear();
@@ -339,6 +344,9 @@ namespace Battleship.UI
             Console.WriteLine("\tEND OF THE GAME");
             Console.WriteLine("  ----------------------------------------------------------  ");
             Console.WriteLine();
+            Console.WriteLine("\t == " + msg + " == ");
+            Console.WriteLine();
+
             Console.WriteLine("\t\tq) EXIT");
 
             while (true)
@@ -352,8 +360,9 @@ namespace Battleship.UI
                 }
             }
 
-            // No buffer swap needed
             return false;
         }
+
+        string msg = "";
     }
 }

@@ -119,7 +119,7 @@ namespace Battleship.UI
                 break;
 
             case eUiState.FINAL:
-                State = new FinalState();
+                State = new FinalState(msg);
                 break;
 
             default:

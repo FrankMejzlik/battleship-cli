@@ -118,6 +118,27 @@ namespace Battleship
             }
         }
 
+        private int CheckFinished()
+        {
+            // Find any unsunk ship
+            bool clientWon = !(ServerShips.Any(ship =>
+              ship.IsSunk == false
+            ));
+            if (clientWon)
+            {
+                return 1;
+            }
+
+            bool servertWon = !(ClientShips.Any(ship =>
+              ship.IsSunk == false
+            ));
+            if (servertWon)
+            {
+                return -1;
+            }
+            return 0;
+        }
+
         /**
          * Client provided locations of the ships - this is start of the game itself.
          */
@@ -206,35 +227,35 @@ namespace Battleship
                 }
             });
 
-            serverShips.Add(new Ship()
-            {
-                Fields = new List<Field>()
-                {
-                    new Field(2, 6),
-                    new Field(2, 7)
-                }
-            });
+            //serverShips.Add(new Ship()
+            //{
+            //    Fields = new List<Field>()
+            //    {
+            //        new Field(2, 6),
+            //        new Field(2, 7)
+            //    }
+            //});
 
-            serverShips.Add(new Ship()
-            {
-                Fields = new List<Field>()
-                {
-                    new Field(6, 2),
-                    new Field(6, 3),
-                    new Field(6, 4)
-                }
-            });
+            //serverShips.Add(new Ship()
+            //{
+            //    Fields = new List<Field>()
+            //    {
+            //        new Field(6, 2),
+            //        new Field(6, 3),
+            //        new Field(6, 4)
+            //    }
+            //});
 
-            serverShips.Add(new Ship()
-            {
-                Fields = new List<Field>()
-                {
-                    new Field(0, 1),
-                    new Field(1, 1),
-                    new Field(2, 1),
-                    new Field(3, 1)
-                }
-            });
+            //serverShips.Add(new Ship()
+            //{
+            //    Fields = new List<Field>()
+            //    {
+            //        new Field(0, 1),
+            //        new Field(1, 1),
+            //        new Field(2, 1),
+            //        new Field(3, 1)
+            //    }
+            //});
 
 
             foreach (var ship in serverShips)
@@ -291,6 +312,7 @@ namespace Battleship
                 fieldOnCoords.IsRevealed = true;
 
                 var isShipDestroyed = !shipOnCoords.Fields.Any(field => field.IsRevealed == false);
+                shipOnCoords.IsSunk = isShipDestroyed;
 
                 if (isShipDestroyed)
                 {
@@ -319,7 +341,7 @@ namespace Battleship
                 Ui.HandleHitHimAt(coords.Item1, coords.Item2);
             }
             // ---------------------------------------------------------
-                        
+
 
 
             // -----------------
@@ -343,6 +365,8 @@ namespace Battleship
                )
             );
 
+
+
             if (shipOnCoords == null)
             {
                 fireResponse = eFireResponseType.WATER;
@@ -350,7 +374,10 @@ namespace Battleship
             else
             {
                 var fieldOnCoords = shipOnCoords.Fields.First(field => field.Coords == coordsFired);
+                fieldOnCoords.IsRevealed = true;
                 var isShipDestroyed = !shipOnCoords.Fields.Any(field => field.IsRevealed == false);
+
+                shipOnCoords.IsSunk = isShipDestroyed;
 
                 if (isShipDestroyed)
                 {
@@ -388,18 +415,40 @@ namespace Battleship
 
         private void TurnSwitch()
         {
-            MyTurn = !MyTurn;
-
+            // Check end of the game
+            var winner = CheckFinished();
             Packet p;
-            if (MyTurn)
+
+            // Server won
+            if (winner == -1)
             {
-                Ui.GotoState(eUiState.YOUR_TURN);
-                p = new Packet(ePacketType.OPPONENTS_TURN);
+                string msg = "Server won!";
+                Ui.GotoState(eUiState.FINAL, msg);
+                p = new Packet(ePacketType.YOU_LOSE, msg);
             }
+            // Client won
+            else if (winner == 1)
+            {
+                string msg = "Client won!";
+                Ui.GotoState(eUiState.FINAL, msg);
+                p = new Packet(ePacketType.YOU_WIN, msg);
+            }
+            // Game continues
             else
             {
-                Ui.GotoState(eUiState.OPPONENTS_TURN);
-                p = new Packet(ePacketType.YOUR_TURN);
+
+                MyTurn = !MyTurn;
+
+                if (MyTurn)
+                {
+                    Ui.GotoState(eUiState.YOUR_TURN);
+                    p = new Packet(ePacketType.OPPONENTS_TURN);
+                }
+                else
+                {
+                    Ui.GotoState(eUiState.OPPONENTS_TURN);
+                    p = new Packet(ePacketType.YOUR_TURN);
+                }
             }
 
             if (!PacketService.SendPacket(p, client))

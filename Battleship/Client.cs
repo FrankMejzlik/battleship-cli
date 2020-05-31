@@ -112,6 +112,18 @@ namespace Battleship
                         // UI => Handle MyTurn
                         Ui.GotoState(eUiState.OPPONENTS_TURN);
                     }
+                    // Client won
+                    else if (packet.Type == ePacketType.YOU_WIN)
+                    {
+                        WriteLog($"Client won.");
+                        Ui.GotoState(eUiState.FINAL, packet.Data);
+                    }
+                    // Client lost
+                    else if (packet.Type == ePacketType.YOU_LOSE)
+                    {
+                        WriteLog($"Server won.");
+                        Ui.GotoState(eUiState.FINAL, packet.Data);
+                    }
                     // Server shot at me
                     else if (packet.Type == ePacketType.FIRE)
                     {
@@ -175,38 +187,35 @@ namespace Battleship
                 }
             });
 
+            //clientShips.Add(new Ship()
+            //{
+            //    Fields = new List<Field>()
+            //    {
+            //        new Field(0, 2),
+            //        new Field(0, 3)
+            //    }
+            //});
 
+            //clientShips.Add(new Ship()
+            //{
+            //    Fields = new List<Field>()
+            //    {
+            //        new Field(5, 4),
+            //        new Field(5, 5),
+            //        new Field(5, 6)
+            //    }
+            //});
 
-
-            clientShips.Add(new Ship()
-            {
-                Fields = new List<Field>()
-                {
-                    new Field(0, 2),
-                    new Field(0, 3)
-                }
-            });
-
-            clientShips.Add(new Ship()
-            {
-                Fields = new List<Field>()
-                {
-                    new Field(5, 4),
-                    new Field(5, 5),
-                    new Field(5, 6)
-                }
-            });
-
-            clientShips.Add(new Ship()
-            {
-                Fields = new List<Field>()
-                {
-                    new Field(4, 1),
-                    new Field(5, 1),
-                    new Field(6, 1),
-                    new Field(7, 1)
-                }
-            });
+            //clientShips.Add(new Ship()
+            //{
+            //    Fields = new List<Field>()
+            //    {
+            //        new Field(4, 1),
+            //        new Field(5, 1),
+            //        new Field(6, 1),
+            //        new Field(7, 1)
+            //    }
+            //});
 
             foreach (var ship in clientShips)
             {
