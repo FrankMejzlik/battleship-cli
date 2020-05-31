@@ -30,9 +30,9 @@ namespace Battleship
         }
 
 
-        public static void LaunchServer(IUi ui)
+        public static void LaunchServer(IUi ui, int port)
         {
-            var server = new Server(6666, ui);
+            var server = new Server(port, ui);
             var serverThread = new Thread(server.Start);
             serverThread.Start();
 

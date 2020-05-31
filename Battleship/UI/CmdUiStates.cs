@@ -14,80 +14,110 @@ namespace Battleship.UI
 
     public class RenderingCmdUiState : ICmdUiState
     {
-        public virtual bool Update(CmdUi owner) 
+        public virtual bool Update(CmdUi owner)
         {
             return true;
         }
 
-        protected void HandleInput(char c)
+        protected void HandleInput(string keyStr)
         {
-            switch (c)
+            switch (keyStr)
             {
-            case 'w':
-                CurPos = (CurPos.Item1, Math.Min(CurPos.Item2, Config.FieldHeight - 1));
+            case "UpArrow":
+                CurPos = (CurPos.Item1, Math.Max(CurPos.Item2 - 1,0));
                 break;
-            case 's':
-                CurPos = (CurPos.Item1, Math.Max(CurPos.Item2, 0));
+            case "DownArrow":
+                CurPos = (CurPos.Item1, Math.Min(CurPos.Item2 + 1, Config.FieldHeight - 1));
                 break;
-            case 'a':
-                CurPos = (Math.Max(CurPos.Item1, 0), CurPos.Item2);
+            case "LeftArrow":
+                CurPos = (Math.Max(CurPos.Item1 - 1, 0), CurPos.Item2);
                 break;
-            case 'd':
-                CurPos = (Math.Min(CurPos.Item1, Config.FieldWidth - 1), CurPos.Item2);
+            case "RightArrow":
+                CurPos = (Math.Min(CurPos.Item1 + 1, Config.FieldWidth - 1), CurPos.Item2);
                 break;
             }
         }
 
-        protected void drawGrid(ref char[,] frameBuffer, int originX, int originY, string title)
+        protected void drawGrid(CmdUi owner, int originX, int originY, string title, eCellState[,] field, bool cursor)
         {
             // Draw text
             for (int i = 0; i < title.Length; ++i)
             {
-                frameBuffer[originX + i, originY] = title[i];
+                owner.frameBuffer[originX + i, originY] = title[i];
             }
 
-            // Draw edges
+            // Draw grid
             ++originY;
-            for (int iy = 0; iy < FieldW; ++iy)
+            for (int iy = 0; iy < owner.FieldW; ++iy)
             {
                 var iyy = iy * 2;
-                for (int ix = 0; ix <= FieldH; ++ix)
+                for (int ix = 0; ix <= owner.FieldH; ++ix)
                 {
                     var ixx = ix * 4;
-                    frameBuffer[originX + ixx, originY + iyy] = '|';
-                    frameBuffer[originX + ixx, originY + iyy + 1] = '|';
+                    owner.frameBuffer[originX + ixx, originY + iyy] = '|';
+                    owner.frameBuffer[originX + ixx, originY + iyy + 1] = '|';
                 }
             }
-            for (int ix = 0; ix < FieldH; ++ix)
+            for (int ix = 0; ix < owner.FieldH; ++ix)
             {
                 var ixx = ix * 4;
-                for (int iy = 0; iy <= FieldW; ++iy)
+                for (int iy = 0; iy <= owner.FieldW; ++iy)
                 {
                     var iyy = iy * 2;
-                    frameBuffer[originX + ixx, originY + iyy] = '-';
-                    frameBuffer[originX + ixx + 1, originY + iyy] = '-';
-                    frameBuffer[originX + ixx + 2, originY + iyy] = '-';
-                    frameBuffer[originX + ixx + 3, originY + iyy] = '-';
+                    owner.frameBuffer[originX + ixx, originY + iyy] = '-';
+                    owner.frameBuffer[originX + ixx + 1, originY + iyy] = '-';
+                    owner.frameBuffer[originX + ixx + 2, originY + iyy] = '-';
+                    owner.frameBuffer[originX + ixx + 3, originY + iyy] = '-';
+                }
+            }
+
+            // Draw contents
+            for (int iy = 0; iy < owner.FieldW; ++iy)
+            {
+                var iyy = iy * 2;
+                for (int ix = 0; ix < owner.FieldH; ++ix)
+                {
+                    var ixx = ix * 4 + 1;
+
+                    var content = field[iy, ix];
+
+                    if (content == eCellState.SHIP || content == eCellState.HIT)
+                    {
+                        owner.frameBuffer[originX + ixx + 0, originY + iyy + 1] = owner.CellStateToString(content);
+                        owner.frameBuffer[originX + ixx + 1, originY + iyy + 1] = owner.CellStateToString(content);
+                        owner.frameBuffer[originX + ixx + 2, originY + iyy + 1] = owner.CellStateToString(content);
+                    } 
+                    else
+                    {
+                        owner.frameBuffer[originX + ixx + 0, originY + iyy + 1] = ' ';
+                        owner.frameBuffer[originX + ixx + 1, originY + iyy + 1] = owner.CellStateToString(content);
+                        owner.frameBuffer[originX + ixx + 2, originY + iyy + 1] = ' ';
+                    }
+
+                    if (CurPos.Item1 == ix && CurPos.Item2 == iy && cursor)
+                    {
+                        owner.frameBuffer[originX + ixx + 0, originY + iyy + 1] = '<';
+                        owner.frameBuffer[originX + ixx + 1, originY + iyy + 1] = '+';
+                        owner.frameBuffer[originX + ixx + 2, originY + iyy + 1] = '>';
+                    }
+
                 }
             }
 
         }
 
-        protected void drawStatus(ref char[,] frameBuffer, string status)
+        protected void drawStatus(CmdUi owner, string status)
         {
             // Draw text
             for (int i = 0; i < status.Length; ++i)
             {
                 var x = 10;
-                var y = FieldH * 2 + 2;
-                frameBuffer[x + i, y] = status[i];
+                var y = owner.FieldH * 2 + 2;
+                owner.frameBuffer[x + i, y] = status[i];
             }
 
         }
-        protected eCellState[,] myField = new eCellState[Config.FieldHeight, Config.FieldWidth];
-        protected eCellState[,] enemyField = new eCellState[Config.FieldHeight, Config.FieldWidth];
-        protected int FieldW { get; set; } = Config.FieldWidth;
-        protected int FieldH { get; set; } = Config.FieldHeight;
+
         protected ValueTuple<int, int> CurPos { get; set; } = (Config.FieldWidth / 2, Config.FieldHeight / 2);
     }
 
@@ -110,27 +140,58 @@ namespace Battleship.UI
         {
             Console.Clear();
             Console.WriteLine();
-            Console.WriteLine("\tDo you want to launch server or connect as a client?");
-            Console.WriteLine("  ----------------------------------------------------------  ");
+            Console.WriteLine("\tDo you want to launch a server or connect as a client?");
+            Console.WriteLine("  ----------------------------------------------------------------  ");
             Console.WriteLine();
-            Console.WriteLine("\t\t1) SERVER");
-            Console.WriteLine("\t\t2) CLIENT");
+            Console.WriteLine("\t  1) SERVER");
+            Console.WriteLine("\t  2) CLIENT");
 
+            // Loop waiting for an input
             while (true)
             {
                 // Wait for the input
-                var key = owner.pollKey();
+                var key = owner.PollKey();
 
                 if (key.KeyChar == '1')
                 {
+                    Console.Clear();
+                    Console.WriteLine();
+                    Console.WriteLine($"\tOn what port? (for default {Config.Port} hit ENTER)");
+                    Console.WriteLine("  ----------------------------------------------------  ");
+                    Console.WriteLine();
+
+                    int port = Config.Port;
+                    var line = Console.ReadLine();
+
+                    // If default address is desired
+                    if (line.Length != 0)
+                    {
+                        try
+                        {
+                            port = int.Parse(line);
+                            Logger.LogI($"Using port: {port}");
+                        }
+                        catch (FormatException)
+                        {
+                            port = Config.Port;
+                            Logger.LogE("Invalid address:" + line);
+                            Logger.LogI($"Using default port: {port}");
+                        }
+                    }
+
+                    // ----------------------
+                    // Launch the SERVER
+                    Program.LaunchServer(owner, port);
+                    // ----------------------
+
                     break;
                 }
                 else if (key.KeyChar == '2')
                 {
                     Console.Clear();
                     Console.WriteLine();
-                    Console.WriteLine($"\tWhat's the address? ({Config.Ip}:{Config.Port})");
-                    Console.WriteLine("  ----------------------------------------------------------  ");
+                    Console.WriteLine($"\tWhat's the address? (for default {Config.Ip}:{Config.Port} hit ENTER)");
+                    Console.WriteLine("  ------------------------------------------------------------------------  ");
                     Console.WriteLine();
 
 
@@ -174,7 +235,6 @@ namespace Battleship.UI
         }
     }
 
-
     class ClientConnectionState : ICmdUiState
     {
         public bool Update(CmdUi owner)
@@ -205,17 +265,20 @@ namespace Battleship.UI
     {
         public override bool Update(CmdUi owner)
         {
-            var input = owner.pollKey();
-
             // Draw grid for me
-            drawGrid(ref owner.frameBuffer, 1, 0, "ME:");
+            // Active cursor here -> you're placing
+            drawGrid(owner, 1, 0, "ME:", owner.myField, true);
 
             // Draw grid for the enemy
-            drawGrid(ref owner.frameBuffer, FieldW * 4 + 4, 0, "ENEMY: ");
+            drawGrid(owner, owner.FieldW * 4 + 4, 0, "ENEMY: ", owner.enemyField, false);
 
-            drawStatus(ref owner.frameBuffer,"Placing ships");
+            drawStatus(owner, "Placing ships");
 
-            // Buffer swap needed
+            owner.SwapBuffers();
+
+            var input = owner.PollKey();
+            HandleInput(input.Key.ToString());
+
             return true;
         }
     }
@@ -224,15 +287,16 @@ namespace Battleship.UI
     {
         public override bool Update(CmdUi owner)
         {
-            var input = owner.pollKey();
+            //var input = owner.pollKey();
 
             // Draw grid for me
-            drawGrid(ref owner.frameBuffer, 1, 0, "ME:");
+            drawGrid(owner, 1, 0, "ME:", owner.myField, false);
 
             // Draw grid for the enemy
-            drawGrid(ref owner.frameBuffer, FieldW * 4 + 4, 0, "ENEMY: ");
+            // Active cursor here -> you're shooting
+            drawGrid(owner, owner.FieldW * 4 + 4, 0, "ENEMY: ", owner.enemyField, true);
 
-            drawStatus(ref owner.frameBuffer,"YOUR TURN! Shoot!");
+            drawStatus(owner, "YOUR TURN! Shoot!");
 
             // Buffer swap needed
             return true;
@@ -243,15 +307,15 @@ namespace Battleship.UI
     {
         public override bool Update(CmdUi owner)
         {
-            var input = owner.pollKey();
+            var input = owner.PollKey();
 
             // Draw grid for me
-            drawGrid(ref owner.frameBuffer, 1, 0, "ME:");
+            drawGrid(owner, 1, 0, "ME:", owner.myField, false);
 
             // Draw grid for the enemy
-            drawGrid(ref owner.frameBuffer, FieldW * 4 + 4, 0, "ENEMY: ");
+            drawGrid(owner, owner.FieldW * 4 + 4, 0, "ENEMY: ", owner.enemyField, false);
 
-            drawStatus(ref owner.frameBuffer,"OPPONENT'S TURN.");
+            drawStatus(owner, "OPPONENT'S TURN.");
 
             // Buffer swap needed
             return true;
@@ -272,7 +336,7 @@ namespace Battleship.UI
             while (true)
             {
                 // Wait for the input
-                var key = owner.pollKey();
+                var key = owner.PollKey();
                 if (key.KeyChar == 'q')
                 {
                     owner.Shutdown();

@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 
 namespace Battleship
 {
@@ -88,13 +89,14 @@ namespace Battleship
             {
                 var packet = PacketService.ReceivePacket(client);
 
+                // Act on recieving a valid packet
                 if (packet != null)
                 {
-                    if (packet.Type == PacketType.Message)
+                    if (packet.Type == PacketType.MESSAGE)
                     {
                         WriteLog($"Message received: {packet.Data}");
                     }
-                    else if (packet.Type == PacketType.Fire)
+                    else if (packet.Type == PacketType.FIRE)
                     {
                         var data = packet.Data.Split('=');
                         var coordsFired = data[0];
@@ -103,7 +105,7 @@ namespace Battleship
                         WriteLog($"Enemy fired to field {coordsFired}");
                         WriteLog(fireResponse);
 
-                        // UI -> Handle FireAt
+                        // UI => Handle FireAt
                         var coords = Utils.ToNumericCoordinates(coordsFired);
                         if (fireResponse == "WATER")
                         {
@@ -114,7 +116,7 @@ namespace Battleship
                             Ui.HandleHitAt(coords.Item1, coords.Item2);
                         }
                     }
-                    else if (packet.Type == PacketType.FireResponse)
+                    else if (packet.Type == PacketType.FIRE_REPONSE)
                     {
                         WriteLog(packet.Data);
                         // TODO: zjistit, který button je bílý (nebo inprogress) a podle response ho obarvit namodro nebo načerveno
@@ -135,6 +137,9 @@ namespace Battleship
                 }
             });
 
+
+            
+
             clientShips.Add(new Ship()
             {
                 Fields = new List<Field>()
@@ -143,7 +148,7 @@ namespace Battleship
                     new Field(0, 3)
                 }
             });
-
+            
             clientShips.Add(new Ship()
             {
                 Fields = new List<Field>()
@@ -153,7 +158,7 @@ namespace Battleship
                     new Field(5, 6)
                 }
             });
-
+            
             clientShips.Add(new Ship()
             {
                 Fields = new List<Field>()
@@ -170,6 +175,9 @@ namespace Battleship
                 PlaceShip(ship);
             }
 
+
+            Thread.Sleep(3000);
+
             SetShips(clientShips);
         }
 
@@ -177,10 +185,10 @@ namespace Battleship
         {
             foreach (var field in ship.Fields)
             {
-                //var button = Form.Controls.Find($"clientField{field.Coords}", false).First();
+                var coords = Utils.ToNumericCoordinates(field.Coords);
+                Ui.HandlePlaceShipAt(coords.Item1, coords.Item2);
 
-                //button.BackColor = Color.Black;
-                //field.IsShip = true;
+                field.IsShip = true;
             }
         }
 
@@ -192,13 +200,13 @@ namespace Battleship
 
         public void Fire(string coords)
         {
-            PacketService.SendPacket(new Packet(PacketType.Fire, coords), client);
+            PacketService.SendPacket(new Packet(PacketType.FIRE, coords), client);
             WriteLog($"Firing to field {coords}");
         }
 
         public void SendMessage(string message)
         {
-            PacketService.SendPacket(new Packet(PacketType.Message, message), client);
+            PacketService.SendPacket(new Packet(PacketType.MESSAGE, message), client);
             WriteLog("Message sent: " + message);
         }
 

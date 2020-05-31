@@ -41,7 +41,7 @@ namespace Battleship
                 i = (26 * i) + ALPHABET.IndexOf(ce.Current) + 1;
 
 
-            return (int.Parse(first), int.Parse(second));
+            return (i, int.Parse(second));
         }
     }
 }

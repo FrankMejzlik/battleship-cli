@@ -8,29 +8,19 @@ namespace Battleship.Enums
 {
     public enum PacketType
     {
-        /// <summary>
-        /// Something went wrong
-        /// </summary>
-        Error = 0,
+        ERROR = 0,
 
-        /// <summary>
-        /// Send message to the enemy
-        /// </summary>
-        Message = 1,
+        MESSAGE = 1,
 
-        /// <summary>
-        /// Send client ships configuration to the server
-        /// </summary>
-        SetClientShips = 2,
+        SET_CLEINT_SHIPS = 2,
 
-        /// <summary>
-        /// Fire to the enemy field
-        /// </summary>
-        Fire = 3,
+        FIRE = 3,
 
-        /// <summary>
-        /// Response after fire to the enemy field
-        /// </summary>
-        FireResponse = 4,
+        FIRE_REPONSE = 4,
+
+        YOUR_TURN = 5,
+         
+        OPPONENTS_TURN = 6,
+        SetClientShips = 7
     }
 }

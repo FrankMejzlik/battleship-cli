@@ -27,6 +27,24 @@ namespace Battleship.UI
         {
             // Prepre terminal
             HandleWindowChange();
+
+            // My field
+            for (int x = 0; x < FieldW; ++x)
+            {
+                for (int y = 0; y < FieldH; ++y)
+                {
+                    myField[x, y] = eCellState.WATER;
+                }
+            }
+
+            // Enemy field
+            for (int x = 0; x < FieldW; ++x)
+            {
+                for (int y = 0; y < FieldH; ++y)
+                {
+                    enemyField[x, y] = eCellState.UNKNOWN;
+                }
+            }
         }
         public void Shutdown()
         {
@@ -49,7 +67,7 @@ namespace Battleship.UI
             }
         }
 
-        public ConsoleKeyInfo pollKey()
+        public ConsoleKeyInfo PollKey()
         {
             ConsoleKeyInfo input;
             while (!Console.KeyAvailable)
@@ -107,24 +125,24 @@ namespace Battleship.UI
 
         public void HandleHitAt(int x, int y)
         {
-            throw new NotImplementedException();
+            myField[x, y] = eCellState.HIT;
         }
 
         public void HandleMisstAt(int x, int y)
         {
-            throw new NotImplementedException();
+            myField[x, y] = eCellState.WATER;
         }
 
         public void HandlePlaceShipAt(int x, int y)
         {
-            throw new NotImplementedException();
+            myField[x, y] = eCellState.SHIP;
         }
 
 
 
         private void HandleWindowChange()
         {
-            //Console.SetWindowSize(FieldW * 4 * 2 + 20, FieldH * 2 + 5);
+            Console.SetWindowSize(FieldW * 4 * 2 + 20, FieldH * 2 + 5);
 
             // Update console window dimensions
             WindowWidth = Console.WindowWidth;
@@ -160,7 +178,7 @@ namespace Battleship.UI
             return ' ';
         }
 
-        private void SwapBuffers()
+        public void SwapBuffers()
         {
             Console.SetCursorPosition(0, 0);
             StringBuilder sb = new StringBuilder();
@@ -193,12 +211,26 @@ namespace Battleship.UI
         public void SetLogic(Logic l)
         {
             Logic = l;
+
+            if (l is Server)
+            {
+                Console.Title = "Battleships: -- SERVER -- ";
+            }
+            else
+            {
+                Console.Title = "Battleships: -- CLIENT -- ";
+            }
         }
 
         /**
          * Member variables
          */
         public ICmdUiState State { get; set; } = new InitialState();
+
+        public eCellState[,] myField = new eCellState[Config.FieldHeight, Config.FieldWidth];
+        public eCellState[,] enemyField = new eCellState[Config.FieldHeight, Config.FieldWidth];
+        public int FieldW { get; set; } = Config.FieldWidth;
+        public int FieldH { get; set; } = Config.FieldHeight;
 
         private Logic Logic { get; set; }
 

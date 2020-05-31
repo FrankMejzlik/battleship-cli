@@ -13,7 +13,8 @@ namespace Battleship
     {
         static Logger()
         {
-            sw = new StreamWriter("log.txt");
+            var ts = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            sw = new StreamWriter($"{ts}_log.txt");
             sw.AutoFlush = true;
         }
 
@@ -40,7 +41,6 @@ namespace Battleship
         private static readonly string ePrefix = "ERROR: ";
 
         private static StreamWriter sw;
-        private static StreamReader sr;
     }
 
 

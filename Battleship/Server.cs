@@ -67,9 +67,18 @@ namespace Battleship
                 return;
             }
 
-            WriteLog("Server started. Waiting for incomming connections...");
+            var msg = $"Server started. Waiting for incomming connections...";
+            // UI => SERVER_WAITING
+            Ui.GotoState(eUiState.SERVER_WAITING, msg);
+
             client = listener.AcceptTcpClient();
-            WriteLog($"New connection from {client.Client.RemoteEndPoint}.");
+
+            msg = $"New connection from {client.Client.RemoteEndPoint}.";
+
+            // UI => PLACING_SHIPS
+            Ui.GotoState(eUiState.PLACING_SHIPS, msg);
+            WriteLog(msg);
+
 
             // TODO: Simulated placing
             PlaceShips();
@@ -86,11 +95,11 @@ namespace Battleship
 
                 if (packet != null)
                 {
-                    if (packet.Type == PacketType.Message)
+                    if (packet.Type == PacketType.MESSAGE)
                     {
                         WriteLog($"Message received: {packet.Data}");
                     }
-                    else if (packet.Type == PacketType.Fire)
+                    else if (packet.Type == PacketType.FIRE)
                     {
                         var coordsFired = packet.Data;
                         var fireResponse = FireField(coordsFired);
@@ -213,13 +222,13 @@ namespace Battleship
                 }
             }
 
-            PacketService.SendPacket(new Packet(PacketType.Fire, $"{coordsFired}={fireResponse.ToFriendlyString()}"), client);
+            PacketService.SendPacket(new Packet(PacketType.FIRE, $"{coordsFired}={fireResponse.ToFriendlyString()}"), client);
             WriteLog(fireResponse.ToFriendlyString());
         }
 
         public void RespondFire(FireResponseType fireResponse)
         {
-            PacketService.SendPacket(new Packet(PacketType.FireResponse, fireResponse.ToFriendlyString()), client);
+            PacketService.SendPacket(new Packet(PacketType.FIRE_REPONSE, fireResponse.ToFriendlyString()), client);
             WriteLog(fireResponse.ToFriendlyString());
         }
 
@@ -270,7 +279,7 @@ namespace Battleship
                 return;
             }
 
-            PacketService.SendPacket(new Packet(PacketType.Message, message), client);
+            PacketService.SendPacket(new Packet(PacketType.MESSAGE, message), client);
             WriteLog("Message sent: " + message);
         }
 

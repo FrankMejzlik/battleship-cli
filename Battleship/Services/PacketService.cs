@@ -61,7 +61,7 @@ namespace Battleship.Services
             catch (Exception ex)
             {
                 // TODO: log    
-                return new Packet(PacketType.Error, ex.Message);
+                return new Packet(PacketType.ERROR, ex.Message);
             }            
         }
     }
