@@ -21,7 +21,7 @@ namespace Battleship
                 x /= 26;
             }
 
-            return str + y.ToString();
+            return  y.ToString() + str;
         }
 
         public static (int, int) ToNumericCoordinates(string coordinates)
@@ -42,7 +42,7 @@ namespace Battleship
                 i = (26 * i) + ALPHABET.IndexOf(ce.Current) + 1;
 
 
-            return (i - 1, int.Parse(second));
+            return (int.Parse(second), i - 1);
         }
     }
 }

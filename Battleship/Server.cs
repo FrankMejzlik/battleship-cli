@@ -9,6 +9,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 
 namespace Battleship
 {
@@ -16,6 +17,9 @@ namespace Battleship
     {
         public void Shutdown();
         void FireAt(int x, int y);
+        void PlaceShip(int item2, int item1, Ship ship);
+
+        public void PlaceShips();
     }
 
     public class Server : Logic
@@ -80,8 +84,12 @@ namespace Battleship
             Ui.GotoState(eUiState.PLACING_SHIPS, msg);
             WriteLog(msg);
 
-            // TODO: Simulated placing
-            PlaceShips();
+
+            // Wait until server places all the ships
+            while (ServerShips.Count != Config.ShipsToPlace.Count)
+            {
+                Thread.Sleep(100);
+            }
 
             // Now listen to the client
             ListenToTheClient();
@@ -215,58 +223,8 @@ namespace Battleship
             // -----------------
         }
 
-        private void PlaceShips()
-        {
-            var serverShips = new List<Ship>();
 
-            serverShips.Add(new Ship()
-            {
-                Fields = new List<Field>()
-                {
-                    new Field(8, 8)
-                }
-            });
-
-            //serverShips.Add(new Ship()
-            //{
-            //    Fields = new List<Field>()
-            //    {
-            //        new Field(2, 6),
-            //        new Field(2, 7)
-            //    }
-            //});
-
-            //serverShips.Add(new Ship()
-            //{
-            //    Fields = new List<Field>()
-            //    {
-            //        new Field(6, 2),
-            //        new Field(6, 3),
-            //        new Field(6, 4)
-            //    }
-            //});
-
-            //serverShips.Add(new Ship()
-            //{
-            //    Fields = new List<Field>()
-            //    {
-            //        new Field(0, 1),
-            //        new Field(1, 1),
-            //        new Field(2, 1),
-            //        new Field(3, 1)
-            //    }
-            //});
-
-
-            foreach (var ship in serverShips)
-            {
-                PlaceShip(ship);
-            }
-
-            SetShips(serverShips);
-        }
-
-        private void PlaceShip(Ship ship)
+        private void PutShipsToUi(Ship ship)
         {
             foreach (var field in ship.Fields)
             {
@@ -277,11 +235,7 @@ namespace Battleship
             }
         }
 
-        public void SetShips(List<Ship> serverShips)
-        {
-            ServerShips = serverShips;
-            WriteLog("Server ships have been set.");
-        }
+
 
         /**
          * Server fires, result is send to the client.
@@ -465,6 +419,36 @@ namespace Battleship
             Fire(strCoords);
         }
 
+        public void PlaceShip(int x, int y, Ship ship)
+        {
+            // Adjust coordinates
+            Ship s = new Ship();
+            foreach (var f in ship.Fields)
+            {
+                int newX = f.X + x;
+                int newY = f.Y + y;
+
+                Field newF = new Field(newX, newY);
+                s.Fields.Add(newF);
+            }
+            ServerShips.Add(s);
+
+            foreach (var field in s.Fields)
+            {
+                var coords = Utils.ToNumericCoordinates(field.Coords);
+                Ui.HandlePlaceShipAt(coords.Item1, coords.Item2);
+
+                field.IsShip = true;
+            }
+
+        }
+
+
+        public void PlaceShips()
+        {
+            WriteLog("Server ships have been set.");
+        }
+
         /*
          * Member variables
          */
@@ -474,8 +458,8 @@ namespace Battleship
         private StringBuilder GameLog { get; set; } = new StringBuilder();
         private int Port { get; set; }
         private IUi Ui { get; set; }
-        private List<Ship> ServerShips { get; set; }
-        private List<Ship> ClientShips { get; set; }
+        private List<Ship> ServerShips { get; set; } = new List<Ship>();
+        private List<Ship> ClientShips { get; set; } = new List<Ship>();
 
         private readonly TcpListener listener;
         private TcpClient client;

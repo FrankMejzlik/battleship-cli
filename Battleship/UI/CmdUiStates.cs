@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Battleship.Models;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Text;
@@ -42,7 +43,7 @@ namespace Battleship.UI
                 if (owner.State is YourTurnState)
                 {
                     // Fire! Logic is branched depending on class of the Logic behind.
-                    owner.Logic.FireAt(CurPos.Item2, CurPos.Item1);
+                    owner.Logic.FireAt(CurPos.Item1, CurPos.Item2);
                 }
                 break;
             }
@@ -103,12 +104,46 @@ namespace Battleship.UI
                         owner.frameBuffer[originX + ixx + 1, originY + iyy + 1] = owner.CellStateToString(content);
                         owner.frameBuffer[originX + ixx + 2, originY + iyy + 1] = ' ';
                     }
+                }
+            }
 
+
+            // Draw cursor
+            for (int iy = 0; iy < owner.FieldW; ++iy)
+            {
+                var iyy = iy * 2;
+                for (int ix = 0; ix < owner.FieldH; ++ix)
+                {
+                    var ixx = ix * 4 + 1;
+
+                    var content = field[iy, ix];
+
+                    // Draw cursor
                     if (CurPos.Item1 == ix && CurPos.Item2 == iy && cursor)
                     {
-                        owner.frameBuffer[originX + ixx + 0, originY + iyy + 1] = '<';
-                        owner.frameBuffer[originX + ixx + 1, originY + iyy + 1] = '+';
-                        owner.frameBuffer[originX + ixx + 2, originY + iyy + 1] = '>';
+                        var xxx = originX + ixx;
+                        var yyy = originY + iyy + 1;
+
+                        owner.frameBuffer[xxx + 0, yyy] = '<';
+                        owner.frameBuffer[xxx + 1, yyy] = '+';
+                        owner.frameBuffer[xxx + 2, yyy] = '>';
+
+                        if (CurShip != null)
+                        {
+                            foreach (var c in CurShip.Fields)
+                            {
+                                var cx = c.X * 4;
+                                var cy = c.Y * 2;
+
+                                try
+                                {
+                                    owner.frameBuffer[xxx + cx + 0, yyy + cy] = 'O';
+                                    owner.frameBuffer[xxx + cx + 1, yyy + cy] = 'O';
+                                    owner.frameBuffer[xxx + cx + 2, yyy + cy] = 'O';
+                                }
+                                catch (IndexOutOfRangeException) { }
+                            }
+                        }
                     }
 
                 }
@@ -129,6 +164,9 @@ namespace Battleship.UI
         }
 
         protected ValueTuple<int, int> CurPos { get; set; } = (Config.FieldWidth / 2, Config.FieldHeight / 2);
+
+
+        protected Ship CurShip { get; set; } = null;
     }
 
     class InterState : ICmdUiState
@@ -270,6 +308,14 @@ namespace Battleship.UI
 
     class PlacingShipsState : RenderingCmdUiState
     {
+        public PlacingShipsState()
+        {
+            foreach (var s in Config.ShipsToPlace)
+            {
+                ShipsToPlace.Add(s);
+            }
+        }
+
         public override bool Update(CmdUi owner)
         {
             // Draw grid for me
@@ -281,13 +327,46 @@ namespace Battleship.UI
 
             drawStatus(owner, "Placing ships");
 
-            owner.SwapBuffers();
+            if (ShipsToPlace.Count > 0)
+            {
+                CurShip = ShipsToPlace[0];
+            }
 
+            owner.SwapBuffers();
             var input = owner.PollKey();
-            HandleInput(owner, input.Key.ToString());
+            if (ShipsToPlace.Count > 0)
+            {
+                HandleInput(owner, input.Key.ToString());
+                HandlePlacingInput(owner, input.Key.ToString());
+            }
+            else
+            {
+                owner.Logic.PlaceShips();
+            }
+
+
+
+
 
             return true;
         }
+
+        protected void HandlePlacingInput(CmdUi owner, string keyStr)
+        {
+            switch (keyStr)
+            {
+            case "Spacebar":
+                // If placing, place the ship
+                if (owner.State is PlacingShipsState)
+                {
+                    owner.Logic.PlaceShip(CurPos.Item1, CurPos.Item2, ShipsToPlace[0]);
+                    ShipsToPlace.RemoveAt(0);
+                }
+                break;
+            }
+        }
+
+        public List<Ship> ShipsToPlace { get; set; } = new List<Ship>();
     }
 
     class YourTurnState : RenderingCmdUiState

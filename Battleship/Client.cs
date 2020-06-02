@@ -4,6 +4,7 @@ using Battleship.UI;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
@@ -68,9 +69,6 @@ namespace Battleship
                 // UI => PLACING_SHIPS
                 Ui.GotoState(eUiState.PLACING_SHIPS, msg);
                 WriteLog(msg);
-
-                // TODO: Simulated placing
-                PlaceShips();
 
                 // Now listen to the server
                 ListenToTheServer();
@@ -177,77 +175,15 @@ namespace Battleship
 
         public void PlaceShips()
         {
-            var clientShips = new List<Ship>();
-
-            clientShips.Add(new Ship()
-            {
-                Fields = new List<Field>()
-                {
-                    new Field(1, 7)
-                }
-            });
-
-            //clientShips.Add(new Ship()
-            //{
-            //    Fields = new List<Field>()
-            //    {
-            //        new Field(0, 2),
-            //        new Field(0, 3)
-            //    }
-            //});
-
-            //clientShips.Add(new Ship()
-            //{
-            //    Fields = new List<Field>()
-            //    {
-            //        new Field(5, 4),
-            //        new Field(5, 5),
-            //        new Field(5, 6)
-            //    }
-            //});
-
-            //clientShips.Add(new Ship()
-            //{
-            //    Fields = new List<Field>()
-            //    {
-            //        new Field(4, 1),
-            //        new Field(5, 1),
-            //        new Field(6, 1),
-            //        new Field(7, 1)
-            //    }
-            //});
-
-            foreach (var ship in clientShips)
-            {
-                PlaceShip(ship);
-            }
-
-
-            Thread.Sleep(3000);
-
-            SetShips(clientShips);
-        }
-
-        private void PlaceShip(Ship ship)
-        {
-            foreach (var field in ship.Fields)
-            {
-                var coords = Utils.ToNumericCoordinates(field.Coords);
-                Ui.HandlePlaceShipAt(coords.Item1, coords.Item2);
-
-                field.IsShip = true;
-            }
-        }
-
-        public void SetShips(List<Ship> clientShips)
-        {
-            var clientShipsSerialized = JsonConvert.SerializeObject(clientShips);
+           // Send those ships to the server
+           var clientShipsSerialized = JsonConvert.SerializeObject(ClientShips);
             if (!PacketService.SendPacket(new Packet(ePacketType.SET_CLIENT_SHIPS, clientShipsSerialized), client))
             {
                 Shutdown();
             }
         }
 
+      
         public void Fire(string coords)
         {
             if (!PacketService.SendPacket(new Packet(ePacketType.FIRE, coords), client))
@@ -283,9 +219,35 @@ namespace Battleship
             Fire(strCoords);
         }
 
+        public void PlaceShip(int x, int y, Ship ship)
+        {
+            // Adjust coordinates
+            Ship s = new Ship();
+            foreach (var f in ship.Fields)
+            {
+                int newX = f.X + x;
+                int newY = f.Y + y;
+
+                Field newF = new Field(newX, newY);
+                s.Fields.Add(newF);
+            }
+            ClientShips.Add(s);
+
+            // Put into the UI
+            foreach (var field in s.Fields)
+            {
+                var coords = Utils.ToNumericCoordinates(field.Coords);
+                Ui.HandlePlaceShipAt(coords.Item1, coords.Item2);
+
+                field.IsShip = true;
+            }
+        }
+
         /*
          * Member variables
          */
+       private List<Ship> ClientShips { get; set; } = new List<Ship>();
+
         private bool ShouldRun { get; set; } = true;
         private StringBuilder GameLog { get; set; } = new StringBuilder();
         private string Host { get; set; }

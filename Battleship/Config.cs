@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Battleship.Models;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -23,6 +24,13 @@ namespace Battleship
         public static string WaterString { get; set; } = "WATER";
         public static string SunkString { get; set; } = "SUNK";
         public static string HitString { get; set; } = "HIT";
+
+        public static List<Ship> ShipsToPlace { get; set; } = new List<Ship>()
+        {
+            new Ship() { Fields = new List<Field>() { new Field(0, 0) } },
+            new Ship() { Fields = new List<Field>() { new Field(-1, 0), new Field(0, 0), new Field(1, 0) } },
+            new Ship() { Fields = new List<Field>() { new Field(-1, 0), new Field(0, 0), new Field(1, 0), new Field(0, -1), new Field(0, 1) } }
+        };
     }
     public enum ePacketType
     {

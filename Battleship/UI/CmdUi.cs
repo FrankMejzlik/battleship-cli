@@ -202,6 +202,7 @@ namespace Battleship.UI
 
         public void SwapBuffers()
         {
+            Console.Clear();
             Console.SetCursorPosition(0, 0);
             StringBuilder sb = new StringBuilder();
 
