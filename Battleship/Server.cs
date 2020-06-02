@@ -20,12 +20,15 @@ namespace Battleship
         void PlaceShip(int item2, int item1, Ship ship);
 
         public void PlaceShips();
+
+        public bool ShouldRun { get; set; }
     }
 
     public class Server : Logic
     {
         public Server(int port, IUi ui)
         {
+            Destructed = false;
             ShouldRun = true;
 
             Port = port;
@@ -35,14 +38,31 @@ namespace Battleship
             listener = new TcpListener(IPAddress.Any, Port);
         }
 
+
         public void Shutdown()
         {
+            // No multiple shutdowns
+            if (Destructed)
+            {
+                return;
+            }
+
+            // Send info about the end to the client
+            if (!PacketService.SendPacket(new Packet(ePacketType.FIN), client))
+            {
+                Shutdown();
+            }
+
+            // Flush the client game log
+            System.IO.File.WriteAllText(Config.ClientGameLogFilepath, GameLog.ToString());
+
+            // Shutdown the UI
+            Ui.Shutdown();
+
             // Set the running flag
             ShouldRun = false;
 
-            // Write client game log
-            System.IO.File.WriteAllText(Config.ClientGameLogFilepath, GameLog.ToString());
-
+            // Close the TCP client
             try
             {
                 client.GetStream().Close();
@@ -51,7 +71,18 @@ namespace Battleship
             catch (ObjectDisposedException)
             { }
 
+            // Stop the listener
             listener.Stop();
+
+            Destructed = true;
+        }
+
+        internal void HandleTimeout()
+        {
+            // Send info about the end to the client
+            PacketService.SendPacket(new Packet(ePacketType.TIMED_OUT), client);
+
+            Ui.GotoState(eUiState.FINAL, Config.StrTimeout);
         }
 
         public void Start()
@@ -84,9 +115,11 @@ namespace Battleship
             Ui.GotoState(eUiState.PLACING_SHIPS, msg);
             WriteLog(msg);
 
+            // Start the timeout timer here
+            Timer.Ping();
 
             // Wait until server places all the ships
-            while (ServerShips.Count != Config.ShipsToPlace.Count)
+            while (ServerShips.Count != Config.ShipsToPlace.Count && ShouldRun)
             {
                 Thread.Sleep(100);
             }
@@ -107,6 +140,13 @@ namespace Battleship
                     if (packet.Type == ePacketType.MESSAGE)
                     {
                         WriteLog($"Message received: {packet.Data}");
+                    }
+                    // End of the program
+                    else if (packet.Type == ePacketType.FIN)
+                    {
+                        WriteLog($"Game forcefully terminated.");
+
+                        Ui.GotoState(eUiState.FINAL, "Forcefull game termination.");
                     }
                     // Client fires at
                     else if (packet.Type == ePacketType.FIRE)
@@ -379,6 +419,9 @@ namespace Battleship
                 string msg = "Server won!";
                 Ui.GotoState(eUiState.FINAL, msg);
                 p = new Packet(ePacketType.YOU_LOSE, msg);
+
+                // Stop the timer
+                Timer.Stop();
             }
             // Client won
             else if (winner == 1)
@@ -386,10 +429,16 @@ namespace Battleship
                 string msg = "Client won!";
                 Ui.GotoState(eUiState.FINAL, msg);
                 p = new Packet(ePacketType.YOU_WIN, msg);
+
+                // Stop the timer
+                Timer.Stop();
             }
             // Game continues
             else
             {
+
+                // Rest the timer
+                Timer.Ping();
 
                 MyTurn = !MyTurn;
 
@@ -463,5 +512,6 @@ namespace Battleship
 
         private readonly TcpListener listener;
         private TcpClient client;
+        private bool Destructed { get; set; } = false;
     }
 }

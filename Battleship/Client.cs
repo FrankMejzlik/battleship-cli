@@ -15,8 +15,6 @@ namespace Battleship
     {
         public Client(string host, int port, IUi ui)
         {
-            ShouldRun = true;
-
             Host = host;
             Port = port;
             Ui = ui;
@@ -27,11 +25,28 @@ namespace Battleship
 
         public void Shutdown()
         {
-            ShouldRun = false;
+            // No multiple destrucitons
+            if (Destructed)
+            {
+                return;
+            }
+
+            // Send info about the end to the client
+            if (!PacketService.SendPacket(new Packet(ePacketType.FIN), client))
+            {
+                Shutdown();
+            }
 
             // Write client game log
             System.IO.File.WriteAllText(Config.ClientGameLogFilepath, GameLog.ToString());
 
+            // Shutdown the UI
+            Ui.Shutdown();
+
+            // Set the running flag
+            ShouldRun = false;
+
+            // Close the TCP client
             try
             {
                 client.GetStream().Close();
@@ -39,6 +54,8 @@ namespace Battleship
             }
             catch (ObjectDisposedException)
             { }
+
+            Destructed = true;
         }
 
         public void Connect()
@@ -93,6 +110,19 @@ namespace Battleship
                     if (packet.Type == ePacketType.MESSAGE)
                     {
                         WriteLog($"Message received: {packet.Data}");
+                    }
+                    // End of the program
+                    else if (packet.Type == ePacketType.FIN)
+                    {
+                        WriteLog($"Game forcefully terminated.");
+
+                        Ui.GotoState(eUiState.FINAL, "Forcefull game termination.");
+                    }
+                    // Timeout
+                    else if (packet.Type == ePacketType.TIMED_OUT)
+                    {
+                        WriteLog(Config.StrTimeout);
+                        Ui.GotoState(eUiState.FINAL, Config.StrTimeout);
                     }
                     // Your turn
                     else if (packet.Type == ePacketType.YOUR_TURN)
@@ -175,15 +205,15 @@ namespace Battleship
 
         public void PlaceShips()
         {
-           // Send those ships to the server
-           var clientShipsSerialized = JsonConvert.SerializeObject(ClientShips);
+            // Send those ships to the server
+            var clientShipsSerialized = JsonConvert.SerializeObject(ClientShips);
             if (!PacketService.SendPacket(new Packet(ePacketType.SET_CLIENT_SHIPS, clientShipsSerialized), client))
             {
                 Shutdown();
             }
         }
 
-      
+
         public void Fire(string coords)
         {
             if (!PacketService.SendPacket(new Packet(ePacketType.FIRE, coords), client))
@@ -246,14 +276,18 @@ namespace Battleship
         /*
          * Member variables
          */
-       private List<Ship> ClientShips { get; set; } = new List<Ship>();
 
-        private bool ShouldRun { get; set; } = true;
+
+        private List<Ship> ClientShips { get; set; } = new List<Ship>();
+
         private StringBuilder GameLog { get; set; } = new StringBuilder();
         private string Host { get; set; }
         private int Port { get; set; }
         private IUi Ui { get; set; }
 
         private readonly TcpClient client;
+
+        public bool ShouldRun { get; set; } = true;
+        private bool Destructed { get; set; } = false;
     }
 }

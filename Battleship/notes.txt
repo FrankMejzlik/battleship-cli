@@ -1,17 +1,63 @@
-spustí server
-spustí client
+# Zadání hry "lodě"
+Úkolem je vytvořit konzolovou aplikaci, která bude umožňovat dvěma hráčům hrát hru lodě po síti v interaktivním prostředí příkazové řádky.
 
-server i client umisťují lodě
-- oba zmáčknou ready
-- client odešle serveru pozice lodí
-- náhodně se zjistí kdo začíná, pokud začíná client, odešle se mu packet že hraje
+## Obecné požadavky
+- Uživatelská dokumentace ve formě *Markdown souboru* (např. README.md)
+- Programátorská dokumentace ve formě dokumentačních komentářů kompatibilních se systémem **Doxygen** a samo-vysvětlujícího kódu s případnými komentáři, pokud se děje něco, co není zcela zřejmé
+- Jak kód, tak i komentáře a dokumentace musí být v **anglickém jazyce**
 
-hraje client
-- vystřelí na server, odešle se packet serveru kam vystřelil
-- server vyhodnotí a vrátí packet fire response
-- pokud je response HIT nebo SINK, jede znovu
-- pokud je response WATER, ukončeje se tah
+## Platforma 
+Aplikace musí plně fungovat na operačním systému **Microsoft Windows 10**, na kterém se předpokládá funkční běhové prostředí **.NET Core verze >=3.0** , nižší verze OS případně jiné operační systémy jsou pouze bonusem.
 
-hraje server 
-- vystřelí na clienta, zjistí jestli se trefí u sebe
-- pošle clientovi packet kam vystřelil a s jakým výsledkem
+## Průběh hry
+0. Aplikace se po spuštění dotáže, jestli bude běžet v režimu **server**, nebo **klient**
+
+
+## Zvolení možnosti "server"
+   0. Server funguje jako "master". Celý průběh hry je v jeho režii, on o všem rozhoduje.
+      - Všechny kroky hráče by měly být v rámci nějakého časového limitu, které vynucuje server. Chceme, aby se zamezilo tomu, že uživatel na druhé straně přestane odpovídat a my se zasekneme ve hře navěky
+         - Server kontroluje časové limity a v případě překročení ukončí hru
+   1. Uživatel je dotázán, na kterém portu chce začít naslouchat (s defaultní možností mimo well-known porty)
+      - Pokud server není z nějakého důvodu možné otevřít -> notifikovat uživatele
+   2. Server začne na zvoleném portu naslouchat v režimu **čekání na spoluhráče**
+   3. Jakmile se připojí protihráč, server přejde do stavu **tvorba herních polí** a dá o tom vědět i klientovi
+   4. Společná část => **Tvorba herních polí**
+   5. Společná část => **Průběh hry**
+   6. Společná část => **Konec hry**
+
+## Zvolení možnosti "klient"
+   1. Klient funguje jako "slave". Pouze poslouchá příkazy serveru a řídí se jeho instrukcemi. Nerozhoduje o průběhu, ani výsledcích hry.
+   2. Uživatel je vyzván k tomu aby zadal adresu (i s číslem portu), kde se očekává naslouchající server
+      - Pokud server není z nějakého důvodu nalezen nebo selže připojení -> notifikovat uživatele
+   3. Společná část => **Tvorba herních polí**
+   4. Společná část => **Průběh hry**
+   5. Společná část => **Konec hry**
+
+
+## Tvorba herních polí
+0. Tato část probíhá paralelně na serveru i klientovi, na další krok se stav posune jakmile oba hráči potvrdí rozložení polí a server to odsouhlasí.
+1. Interaktivním způsobem si hráč na pole rozmístí svoje lodě (posuvem pivot pointu šipkami a rotací lodě uvedenou klávesou)
+   - Není nutné mít možnosti, jak znovu umisťovat již jednou umístěné lodě
+2.  Potvrzení výběru
+
+## Průběh hry
+0. Hraje se na kola, začíná náhodně vybraný hráč
+1. Hráč na tahu interaktivně vybere políčko, na které chce vypálit
+   - Ihned po výběru se mu zobrazí na herním poli, zdali zasáhl, nebo minul
+2. Na tahu je druhý hráč
+3. Opakujeme kroky 1,2 dokud nenastane jeden z případů:
+   - Server ohlásí konec hry z jiného důvodu, než je řádné ukončení hry (neaktivita, ztráta spojení), přecházíme do stavu **Konec hry**
+   - Jeden z hráčů přijde o všechny svoje lodě, přecházíme do stavu **Konec hry**
+
+
+## Konec hry
+0. Zde je zobrazen vítěz 
+   - Pokud hra byla ukončena z jiného důvodu, tak důvod ukončení
+1. Program může uživatel ukončit 
+   - Volitelně může být možnost opakovat hru se stejným hráčem
+
+
+## Volitelné možnosti rozšíření
+1. Hra proti počítači
+   - Případně s volitelnou obtížností
+2. Možnost chatu mezi hráči

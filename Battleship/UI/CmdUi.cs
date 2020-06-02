@@ -53,7 +53,7 @@ namespace Battleship.UI
         }
         public void Shutdown()
         {
-            Logic?.Shutdown();
+            Logic.ShouldRun = false;
             ShouldRun = false;
         }
 
@@ -74,7 +74,7 @@ namespace Battleship.UI
             {
                 DoCheck();
 
-                if (ShouldUnblock)
+                if (ShouldUnblock || !ShouldRun)
                 {
                     ShouldUnblock = false;
                     return new ConsoleKeyInfo();
@@ -88,6 +88,8 @@ namespace Battleship.UI
 
         public void GotoState(eUiState newState, string msg = "")
         {
+            Console.Clear();
+
             switch (newState)
             {
             case eUiState.INTER:

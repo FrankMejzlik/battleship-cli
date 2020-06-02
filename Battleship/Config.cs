@@ -10,6 +10,9 @@ namespace Battleship
      */
     static class Config
     {
+
+        public static int Timeout { get; set; } = 10;
+
         public static string ClientGameLogFilepath { get; set; } = @"client_game_log.txt";
         public static string ServerGameLogFilepath { get; set; } = @"server_game_log.txt";
 
@@ -24,6 +27,10 @@ namespace Battleship
         public static string WaterString { get; set; } = "WATER";
         public static string SunkString { get; set; } = "SUNK";
         public static string HitString { get; set; } = "HIT";
+
+        public static string StrTimeout { get; set; } = "Timeout";
+
+
 
         public static List<Ship> ShipsToPlace { get; set; } = new List<Ship>()
         {
@@ -50,7 +57,9 @@ namespace Battleship
         YOU_LOSE = 9,
 
         /** Indicates that game ended due to long inactivity */
-        TIMED_OUT = 10
+        TIMED_OUT = 10,
+
+        FIN = 11
 
     }
     public enum eFireResponseType
