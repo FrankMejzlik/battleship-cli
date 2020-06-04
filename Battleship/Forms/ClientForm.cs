@@ -72,7 +72,8 @@ namespace Battleship.Forms
 
             button.BackColor = Color.White;
 
-            Client?.Fire(button.Text);
+            var numCoords = Utils.ToNumericCoordinates(button.Text);
+            Client.FireAt(numCoords.Item1, numCoords.Item2);
         }
 
         private void SendMessage(object sender, EventArgs e)

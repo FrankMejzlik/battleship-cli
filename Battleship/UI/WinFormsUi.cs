@@ -67,5 +67,6 @@ namespace Battleship.UI
         }
 
         public Form Form { get; set; }
+        public bool IsInter { get => true; }
     }
 }

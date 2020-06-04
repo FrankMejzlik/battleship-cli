@@ -194,10 +194,10 @@ namespace Battleship.UI
                 return 'X';
             case eCellState.MISSED_ME:
                 return '*';
-                case eCellState.HIT_ME:
+            case eCellState.HIT_ME:
                 return 'X';
 
-                
+
             }
             return ' ';
         }
@@ -247,12 +247,20 @@ namespace Battleship.UI
             }
 
         }
+
+
+        
+
         /**
          * Member variables
          */
         public ICmdUiState State { get; set; } = new InitialState();
+        public bool IsInter
+        {
+            get => State is InterState;
+        }
 
-        public bool ShouldUnblock {get;set;} = false;
+        public bool ShouldUnblock { get; set; } = false;
 
         public eCellState[,] myField = new eCellState[Config.FieldHeight, Config.FieldWidth];
         public eCellState[,] enemyField = new eCellState[Config.FieldHeight, Config.FieldWidth];

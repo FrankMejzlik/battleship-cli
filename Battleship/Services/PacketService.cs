@@ -10,13 +10,23 @@ using System.Threading.Tasks;
 
 namespace Battleship.Services
 {
+    /**
+     * Abstraction layer for communication with the other side (Client/Server).
+     */
     public class PacketService
     {
-        public static bool SendPacket(Packet packet, TcpClient client)
+        /**
+         * Sends the provided packet using the provided client.
+         * 
+         * \parem packet        Packet to be sent.
+         * \param networkClient Client to be used for sending.
+         * \param errHandler    Hanler to be called if not successfull.
+         */
+        public static void SendPacket(Packet packet, TcpClient networkClient, Action errHandler)
         {
             try
             {
-                var stream = client.GetStream();
+                var stream = networkClient.GetStream();
                 var jsonBuffer = Encoding.UTF8.GetBytes(packet.ToString());
                 var lengthBuffer = BitConverter.GetBytes(Convert.ToUInt16(jsonBuffer.Length));
                 var messageBuffer = new byte[jsonBuffer.Length + lengthBuffer.Length];
@@ -25,16 +35,23 @@ namespace Battleship.Services
                 jsonBuffer.CopyTo(messageBuffer, lengthBuffer.Length);
 
                 stream.Write(messageBuffer, 0, messageBuffer.Length);
-                return true;
             }
             catch (Exception ex)
             {
-                Logger.LogE($"Send packet failed: {ex.Message}");
-                return false;
+                Logger.LogE($"Send packet failed with the message '{ex.Message}'.");
+
+                errHandler();
             }
         }
 
-        public static Packet ReceivePacket(TcpClient client)
+        /**
+         * Recieves packet from the provided client.
+         * 
+         * \param networkClient Client to be used for sending.
+         * \param errHandler    Hanler to be called if not successfull.
+         * \return  The recieved packet.
+         */
+        public static Packet ReceivePacket(TcpClient client, Action errHandler)
         {
             if (client.Available == 0)
             {
@@ -50,19 +67,23 @@ namespace Battleship.Services
             var jsonBuffer = new byte[packetByteSize];
 
             stream.Read(jsonBuffer, 0, jsonBuffer.Length);
-
             var jsonString = Encoding.UTF8.GetString(jsonBuffer);
-            
+
+
+            // Try deserialize it
+            Packet resPacket = new Packet(ePacketType.ERROR, "Error recieving a packet.");
             try
             {
-                var packet = JsonConvert.DeserializeObject<Packet>(jsonString);
-                return packet;
+                resPacket = JsonConvert.DeserializeObject<Packet>(jsonString);
             }
             catch (Exception ex)
             {
-                // TODO: log    
-                return new Packet(ePacketType.ERROR, ex.Message);
-            }            
+                Logger.LogE($"Recieve packet failed with the message '{ex.Message}'.");
+
+                errHandler();
+            }
+
+            return resPacket;
         }
     }
 }

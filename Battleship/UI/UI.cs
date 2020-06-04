@@ -57,6 +57,8 @@ namespace Battleship.UI
     }
     public interface IUi
     {
+        public bool IsInter { get; }
+
         public void Launch();
         public void Shutdown();
         public void GotoState(eUiState state, string msg = "");

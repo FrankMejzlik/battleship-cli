@@ -21,7 +21,7 @@ namespace Battleship
          */
         public static int Main(string[] args)
         {
-            AppDomain.CurrentDomain.ProcessExit += new EventHandler(CurrentDomain_ProcessExit);
+            AppDomain.CurrentDomain.ProcessExit += new EventHandler(HandleProcessExit);
 
             if (args.Contains("gui"))
             {
@@ -90,7 +90,7 @@ namespace Battleship
             AppInstance = client;
         }
 
-        static void CurrentDomain_ProcessExit(object sender, EventArgs e)
+        static void HandleProcessExit(object sender, EventArgs e)
         {
             AppInstance?.Shutdown();
         }

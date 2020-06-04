@@ -47,11 +47,10 @@ namespace Battleship
                 return;
             }
 
-            // Send info about the end to the client
-            if (!PacketService.SendPacket(new Packet(ePacketType.FIN), client))
-            {
-                Shutdown();
-            }
+            // Stop timer
+            Timer.Stop();
+
+
 
             // Flush the client game log
             System.IO.File.WriteAllText(Config.ClientGameLogFilepath, GameLog.ToString());
@@ -62,14 +61,21 @@ namespace Battleship
             // Set the running flag
             ShouldRun = false;
 
-            // Close the TCP client
-            try
+
+            // Handle TCP client and the other side
+            if (client != null)
             {
-                client.GetStream().Close();
-                client.Close();
+                PacketService.SendPacket(new Packet(ePacketType.FIN), client, Shutdown);
+
+                // Close the TCP client
+                try
+                {
+                    client.GetStream().Close();
+                    client.Close();
+                }
+                catch (ObjectDisposedException)
+                { }
             }
-            catch (ObjectDisposedException)
-            { }
 
             // Stop the listener
             listener.Stop();
@@ -80,13 +86,19 @@ namespace Battleship
         internal void HandleTimeout()
         {
             // Send info about the end to the client
-            PacketService.SendPacket(new Packet(ePacketType.TIMED_OUT), client);
+            PacketService.SendPacket(new Packet(ePacketType.TIMED_OUT), client, Shutdown);
 
             Ui.GotoState(eUiState.FINAL, Config.StrTimeout);
         }
 
         public void Start()
         {
+            // Make sure that UI is interstate
+            while (!Ui.IsInter)
+            {
+                Thread.Sleep(100);
+            }
+
             try
             {
                 WriteLog($"Starting the server on port {Port}...");
@@ -132,7 +144,7 @@ namespace Battleship
         {
             while (ShouldRun)
             {
-                var packet = PacketService.ReceivePacket(client);
+                var packet = PacketService.ReceivePacket(client, Shutdown);
 
                 if (packet != null)
                 {
@@ -201,18 +213,13 @@ namespace Battleship
             if (MyTurn)
             {
                 Ui.GotoState(eUiState.YOUR_TURN);
-                if (!PacketService.SendPacket(new Packet(ePacketType.OPPONENTS_TURN), client))
-                {
-                    Shutdown();
-                }
+                PacketService.SendPacket(new Packet(ePacketType.OPPONENTS_TURN), client, Shutdown);
             }
             else
             {
                 Ui.GotoState(eUiState.OPPONENTS_TURN);
-                if (!PacketService.SendPacket(new Packet(ePacketType.YOUR_TURN), client))
-                {
-                    Shutdown();
-                }
+                PacketService.SendPacket(new Packet(ePacketType.YOUR_TURN), client, Shutdown);
+
             }
         }
 
@@ -237,10 +244,8 @@ namespace Battleship
             WriteLog($"Enemy fired to field {coordsFired}");
 
             // Notify the client
-            if (!PacketService.SendPacket(new Packet(ePacketType.FIRE_REPONSE, $"{coordsFired}={fireResponse.ToFriendlyString()}"), client))
-            {
-                Shutdown();
-            }
+            PacketService.SendPacket(new Packet(ePacketType.FIRE_REPONSE, $"{coordsFired}={fireResponse.ToFriendlyString()}"), client, Shutdown);
+
 
             WriteLog(fireResponse.ToFriendlyString());
 
@@ -319,10 +324,8 @@ namespace Battleship
             }
 
             // Tell the client what the server fired at
-            if (!PacketService.SendPacket(new Packet(ePacketType.FIRE, $"{coordsFired}={fireResponse.ToFriendlyString()}"), client))
-            {
-                Shutdown();
-            }
+            PacketService.SendPacket(new Packet(ePacketType.FIRE, $"{coordsFired}={fireResponse.ToFriendlyString()}"), client, Shutdown);
+
 
             // ---------------------------------------------------------
             // Handle UI
@@ -393,10 +396,8 @@ namespace Battleship
                 return;
             }
 
-            if (!PacketService.SendPacket(new Packet(ePacketType.MESSAGE, message), client))
-            {
-                Shutdown();
-            }
+            PacketService.SendPacket(new Packet(ePacketType.MESSAGE, message), client, Shutdown);
+
             WriteLog("Message sent: " + message);
         }
 
@@ -454,10 +455,7 @@ namespace Battleship
                 }
             }
 
-            if (!PacketService.SendPacket(p, client))
-            {
-                Shutdown();
-            }
+            PacketService.SendPacket(p, client, Shutdown);
         }
 
         public void FireAt(int x, int y)

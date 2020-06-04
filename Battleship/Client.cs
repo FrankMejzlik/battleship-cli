@@ -32,10 +32,7 @@ namespace Battleship
             }
 
             // Send info about the end to the client
-            if (!PacketService.SendPacket(new Packet(ePacketType.FIN), client))
-            {
-                Shutdown();
-            }
+            PacketService.SendPacket(new Packet(ePacketType.FIN), client, Shutdown);
 
             // Write client game log
             System.IO.File.WriteAllText(Config.ClientGameLogFilepath, GameLog.ToString());
@@ -101,7 +98,7 @@ namespace Battleship
         {
             while (ShouldRun)
             {
-                var packet = PacketService.ReceivePacket(client);
+                var packet = PacketService.ReceivePacket(client, Shutdown);
 
                 // Act on recieving a valid packet
                 if (packet != null)
@@ -207,33 +204,14 @@ namespace Battleship
         {
             // Send those ships to the server
             var clientShipsSerialized = JsonConvert.SerializeObject(ClientShips);
-            if (!PacketService.SendPacket(new Packet(ePacketType.SET_CLIENT_SHIPS, clientShipsSerialized), client))
-            {
-                Shutdown();
-            }
-        }
-
-
-        public void Fire(string coords)
-        {
-            if (!PacketService.SendPacket(new Packet(ePacketType.FIRE, coords), client))
-            {
-                Shutdown();
-            }
-
-            WriteLog($"Firing to field {coords}");
+            PacketService.SendPacket(new Packet(ePacketType.SET_CLIENT_SHIPS, clientShipsSerialized), client, Shutdown);
         }
 
         public void SendMessage(string message)
         {
-            if (!PacketService.SendPacket(new Packet(ePacketType.MESSAGE, message), client))
-            {
-                Shutdown();
-            }
-            WriteLog("Message sent: " + message);
+            PacketService.SendPacket(new Packet(ePacketType.MESSAGE, message), client, Shutdown);
+            WriteLog($"Send message '{message}'.");
         }
-
-        private delegate void WriteLogCallback(string text);
 
         private void WriteLog(string text)
         {
@@ -242,11 +220,11 @@ namespace Battleship
 
         public void FireAt(int x, int y)
         {
-
-            // Convert to excel coordinates
+            // Convert to the Excel coordinates
             var strCoords = Utils.GetCoords(x, y);
 
-            Fire(strCoords);
+            PacketService.SendPacket(new Packet(ePacketType.FIRE, strCoords), client, Shutdown);
+            WriteLog($"Firing at the '{strCoords}' field.");
         }
 
         public void PlaceShip(int x, int y, Ship ship)
