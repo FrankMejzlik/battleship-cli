@@ -142,7 +142,7 @@ namespace Battleship
                         Logger.LogI($"Game forcefully terminated.");
 
                         // ------------------------ UI -----------------------------
-                        Ui.GotoState(UiState.FINAL, "Forcefull game termination.");
+                        Ui.GotoState(UiState.FINAL, Config.Strings.ForcedExit);
                         // ------------------------ UI -----------------------------
                     }
                     // Timeout

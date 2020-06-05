@@ -414,9 +414,8 @@ namespace Battleship
             // Server won
             if (winner == -1)
             {
-                string msg = "Server won!";
-                Ui.GotoState(UiState.FINAL, msg);
-                p = new Packet(PacketType.YOU_LOSE, msg);
+                Ui.GotoState(UiState.FINAL, Config.Strings.YouWin);
+                p = new Packet(PacketType.YOU_LOSE, Config.Strings.YouWin);
 
                 // Stop the timer
                 Timer.Stop();
@@ -424,9 +423,8 @@ namespace Battleship
             // Client won
             else if (winner == 1)
             {
-                string msg = "Client won!";
-                Ui.GotoState(UiState.FINAL, msg);
-                p = new Packet(PacketType.YOU_WIN, msg);
+                Ui.GotoState(UiState.FINAL, Config.Strings.YouLose);
+                p = new Packet(PacketType.YOU_WIN, Config.Strings.YouLose);
 
                 // Stop the timer
                 Timer.Stop();

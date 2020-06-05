@@ -48,27 +48,30 @@ namespace Battleship.UI
             }
         }
 
-        protected void drawGrid(CmdUi owner, int originX, int originY, string title, CellState[,] field, bool cursor)
+        protected void DrawGrid(CmdUi owner, int originX, int originY, string title, CellState[,] fields, bool withCursor)
         {
-            // Draw text
-            for (int i = 0; i < title.Length; ++i)
-            {
-                owner.frameBuffer[originX + i, originY] = title[i];
-            }
+            // Draw the title
+            DrawText(owner, originX, originY, title);
 
-            // Draw grid
+            // Go one line down before drawing the grids
             ++originY;
-            for (int iy = 0; iy < owner.FieldW; ++iy)
-            {
-                var iyy = iy * 2;
-                for (int ix = 0; ix <= owner.FieldH; ++ix)
-                {
-                    var ixx = ix * 4;
-                    owner.frameBuffer[originX + ixx, originY + iyy] = '|';
-                    owner.frameBuffer[originX + ixx, originY + iyy + 1] = '|';
-                    owner.frameBuffer[originX + ixx, originY + iyy + 2] = '|';
-                }
-            }
+
+            // Draw vertical edges
+            DrawVerticalGrid(owner, originX, originY);
+
+            // Draw horizontal edges
+            DrawHorizontalGrid(owner, originX, originY);
+
+            // Draw contents of the fields
+            DrawFieldContents(owner, originX, originY, fields);
+
+            // Draw the cursor
+            DrawCursor(owner, originX, originY, fields, withCursor);
+
+        }
+
+        private static void DrawHorizontalGrid(CmdUi owner, int originX, int originY)
+        {
             for (int ix = 0; ix < owner.FieldH; ++ix)
             {
                 var ixx = ix * 4;
@@ -81,35 +84,44 @@ namespace Battleship.UI
                     owner.frameBuffer[originX + ixx + 3, originY + iyy] = '-';
                     owner.frameBuffer[originX + ixx + 4, originY + iyy] = '-';
                 }
-            }
 
-            // Draw contents
+                // Draw column letter
+                var coords = Utils.ToExcelCoords(ix, 0);
+                owner.frameBuffer[originX + ixx + 2, originY] = coords[0];
+            }
+        }
+
+        private static void DrawVerticalGrid(CmdUi owner, int originX, int originY)
+        {
             for (int iy = 0; iy < owner.FieldW; ++iy)
             {
                 var iyy = iy * 2;
-                for (int ix = 0; ix < owner.FieldH; ++ix)
+                for (int ix = 0; ix <= owner.FieldH; ++ix)
                 {
-                    var ixx = ix * 4 + 1;
+                    var ixx = ix * 4;
+                    owner.frameBuffer[originX + ixx, originY + iyy] = '|';
+                    owner.frameBuffer[originX + ixx, originY + iyy + 1] = '|';
+                    owner.frameBuffer[originX + ixx, originY + iyy + 2] = '|';
+                }
 
-                    var content = field[ix, iy];
-
-                    if (content == CellState.SHIP || content == CellState.HIT_HIM || content == CellState.HIT_ME)
+                // Draw row number
+                {
+                    string str = (iy + 1).ToString();
+                    if (str.Length == 1)
                     {
-                        owner.frameBuffer[originX + ixx + 0, originY + iyy + 1] = content.ToChar();
-                        owner.frameBuffer[originX + ixx + 1, originY + iyy + 1] = content.ToChar();
-                        owner.frameBuffer[originX + ixx + 2, originY + iyy + 1] = content.ToChar();
+                        owner.frameBuffer[originX, originY + iyy + 1] = str[0];
                     }
-                    else
+                    else if (str.Length == 2)
                     {
-                        owner.frameBuffer[originX + ixx + 0, originY + iyy + 1] = ' ';
-                        owner.frameBuffer[originX + ixx + 1, originY + iyy + 1] = content.ToChar();
-                        owner.frameBuffer[originX + ixx + 2, originY + iyy + 1] = ' ';
+                        owner.frameBuffer[originX - 1, originY + iyy + 1] = str[0];
+                        owner.frameBuffer[originX, originY + iyy + 1] = str[1];
                     }
                 }
             }
+        }
 
-
-            // Draw cursor
+        private void DrawCursor(CmdUi owner, int originX, int originY, CellState[,] field, bool cursor)
+        {
             for (int iy = 0; iy < owner.FieldW; ++iy)
             {
                 var iyy = iy * 2;
@@ -149,28 +161,65 @@ namespace Battleship.UI
 
                 }
             }
-
         }
 
-        protected void drawStatus(CmdUi owner, int x, int y, string status)
+        private static void DrawFieldContents(CmdUi owner, int originX, int originY, CellState[,] field)
         {
-            // Draw text
+            for (int iy = 0; iy < owner.FieldW; ++iy)
+            {
+                for (int ix = 0; ix < owner.FieldH; ++ix)
+                {
+                    var content = field[ix, iy];
+             
+                    // Compute the offsets in real terminal cells
+                    var ixx = ix * Config.TerminalFieldWidth + 1;
+                    var iyy = iy * Config.TerminalFieldHeight;
+
+                    if (content == CellState.SHIP || content == CellState.HIT_HIM || content == CellState.HIT_ME)
+                    {
+                        owner.frameBuffer[originX + ixx + 0, originY + iyy + 1] = content.ToChar();
+                        owner.frameBuffer[originX + ixx + 1, originY + iyy + 1] = content.ToChar();
+                        owner.frameBuffer[originX + ixx + 2, originY + iyy + 1] = content.ToChar();
+                    }
+                    else
+                    {
+                        owner.frameBuffer[originX + ixx + 0, originY + iyy + 1] = ' ';
+                        owner.frameBuffer[originX + ixx + 1, originY + iyy + 1] = content.ToChar();
+                        owner.frameBuffer[originX + ixx + 2, originY + iyy + 1] = ' ';
+                    }
+                }
+            }
+        }
+
+        /** Draws the provided status text into the frame buffer (terminal). 
+         * 
+         * \param owner     Reference to the owning UI.
+         * \param x         X origin coord.
+         * \param y         Y origin coord.
+         * \param status    Text to be rendered.
+         */
+        protected void DrawText(CmdUi owner, int x, int y, string status)
+        {
+            // Draw the text
             for (int i = 0; i < status.Length; ++i)
             {
                 owner.frameBuffer[x + i, y] = status[i];
             }
-
         }
 
-         protected (int, int) MyGridOrigin(CmdUi owner) => (1, 0);
+        /** Computes absolute position in terminal window of my grid origin. */
+        protected (int, int) MyGridOrigin(CmdUi owner) => (2, 0);
 
-        protected (int, int) EnemyGridOrigin(CmdUi owner) =>  (owner.FieldW * Config.TerminalFieldWidth + 4, 0);
+        /** Computes absolute position in terminal window of the opponent's grid origin. */
+        protected (int, int) EnemyGridOrigin(CmdUi owner) =>  (owner.FieldW * Config.TerminalFieldWidth + (2 * Config.TerminalFieldWidth), 0);
 
+        /** Computes absolute position in terminal window of the status text origin. */
         protected (int, int) StatusOrigin(CmdUi owner) =>  (10, MyGridOrigin(owner).Item2 + owner.FieldH * Config.TerminalFieldHeight + 2);
         
+        /** Current cursor position. */
         protected ValueTuple<int, int> CurPos { get; set; } = (Config.FieldWidth / 2, Config.FieldHeight / 2);
 
-
+        /** Represents ship that is "bound" to the cursor. Null if none. */
         protected Ship CurShip { get; set; } = null;
     }
 
@@ -179,7 +228,7 @@ namespace Battleship.UI
         public bool Update(CmdUi owner)
         {
             Console.Clear();
-            Console.WriteLine("Working...");
+            Console.WriteLine(Config.Strings.Working);
             Thread.Sleep(50);
 
             return true;
@@ -191,12 +240,7 @@ namespace Battleship.UI
         public bool Update(CmdUi owner)
         {
             Console.Clear();
-            Console.WriteLine();
-            Console.WriteLine("\tDo you want to launch a server or connect as a client?");
-            Console.WriteLine("  ----------------------------------------------------------------  ");
-            Console.WriteLine();
-            Console.WriteLine("\t  1) SERVER");
-            Console.WriteLine("\t  2) CLIENT");
+            Console.WriteLine(Config.ScreenStrings.InitialScreen);
 
             // Loop waiting for an input
             while (true)
@@ -280,8 +324,9 @@ namespace Battleship.UI
                     owner.Shutdown();
                 }
             }
+
             // Go to interstate
-            owner.GotoState(UiState.INTER, "From INITIAL.");
+            owner.GotoState(UiState.INTER);
 
             return true;
         }
@@ -327,30 +372,31 @@ namespace Battleship.UI
             var enemyGridOrigin = EnemyGridOrigin(owner);
             var statusOrigin = StatusOrigin(owner);
 
-            // Draw grid for me
-            drawGrid(owner, myGridOrigin.Item1, myGridOrigin.Item2, "ME:", owner.myField, true);
 
+            // Place it to the cursor
+            CurShip = ShipsToPlace.Count > 0 ? ShipsToPlace[0] : null;
+
+            // Draw grid for me
+            DrawGrid(owner, myGridOrigin.Item1, myGridOrigin.Item2, Config.Strings.MyFieldLabel, owner.myField, true);
+                
             // Draw grid for the enemy
-            drawGrid(owner, enemyGridOrigin.Item1, enemyGridOrigin.Item2, "ENEMY: ", owner.enemyField, false);
+            DrawGrid(owner, enemyGridOrigin.Item1, enemyGridOrigin.Item2, Config.Strings.EnemyFieldLabel, owner.enemyField, false);
 
             // Draw status to the UI
-            drawStatus(owner, statusOrigin.Item1, statusOrigin.Item2, "Placing ships");
-
-            // Do we still have some ships to place?
-            if (ShipsToPlace.Count > 0)
-            {
-                CurShip = ShipsToPlace[0];
-            }
+            DrawText(owner, statusOrigin.Item1, statusOrigin.Item2, Config.Strings.PlacingShips + $"\t {ShipsToPlace.Count} ships to place left.");
+            DrawText(owner, statusOrigin.Item1, statusOrigin.Item2 + 1, Config.Strings.PlacingShipsInstruction);
 
             owner.SwapBuffers();
             var input = owner.PollKey();
-            if (ShipsToPlace.Count > 0)
+
+            HandleInput(owner, input.Key.ToString());
+            // Handle input specific to placing ships
+            HandlePlacingInput(owner, input.Key.ToString());
+
+            // Are all ships placed?
+            if (ShipsToPlace.Count == 0)
             {
-                HandleInput(owner, input.Key.ToString());
-                HandlePlacingInput(owner, input.Key.ToString());
-            }
-            else
-            {
+                // Confirm it
                 owner.Logic.PlaceShips();
             }
 
@@ -359,15 +405,17 @@ namespace Battleship.UI
 
         protected void HandlePlacingInput(CmdUi owner, string keyStr)
         {
+            if (ShipsToPlace.Count == 0)
+            {
+                return;
+            }
+
             switch (keyStr)
             {
             case "Spacebar":
-                // If placing, place the ship
-                if (owner.State is PlacingShipsState)
-                {
-                    owner.Logic.PlaceShip(CurPos.Item1, CurPos.Item2, ShipsToPlace[0]);
-                    ShipsToPlace.RemoveAt(0);
-                }
+                
+                owner.Logic.PlaceShip(CurPos.Item1, CurPos.Item2, ShipsToPlace[0]);
+                ShipsToPlace.RemoveAt(0);
                 break;
             }
         }
@@ -384,12 +432,14 @@ namespace Battleship.UI
             var statusOrigin = StatusOrigin(owner);
 
             // Draw grid for me
-            drawGrid(owner, myGridOrigin.Item1, myGridOrigin.Item2, "ME:", owner.myField, false);
+            DrawGrid(owner, myGridOrigin.Item1, myGridOrigin.Item2, Config.Strings.MyFieldLabel, owner.myField, false);
 
             // Draw grid for the enemy
-            drawGrid(owner, enemyGridOrigin.Item1, enemyGridOrigin.Item2, "ENEMY: ", owner.enemyField, true);
+            DrawGrid(owner, enemyGridOrigin.Item1, enemyGridOrigin.Item2, Config.Strings.EnemyFieldLabel, owner.enemyField, true);
 
-            drawStatus(owner, statusOrigin.Item1, statusOrigin.Item2, "YOUR TURN! Aim with arrows and SHOOT with the SPACE key!");
+            // Draw status texts
+            DrawText(owner, statusOrigin.Item1, statusOrigin.Item2, Config.Strings.MyTurn);
+            DrawText(owner, statusOrigin.Item1, statusOrigin.Item2 + 1, Config.Strings.MyTurnInstruction);
 
             owner.SwapBuffers();
             var input = owner.PollKey();
@@ -408,12 +458,14 @@ namespace Battleship.UI
             var statusOrigin = StatusOrigin(owner);
 
             // Draw grid for me
-            drawGrid(owner, myGridOrigin.Item1, myGridOrigin.Item2, "ME:", owner.myField, false);
+            DrawGrid(owner, myGridOrigin.Item1, myGridOrigin.Item2, Config.Strings.MyFieldLabel, owner.myField, false);
 
             // Draw grid for the enemy
-            drawGrid(owner, enemyGridOrigin.Item1, enemyGridOrigin.Item2, "ENEMY: ", owner.enemyField, false);
+            DrawGrid(owner, enemyGridOrigin.Item1, enemyGridOrigin.Item2, Config.Strings.EnemyFieldLabel, owner.enemyField, false);
 
-            drawStatus(owner, statusOrigin.Item1, statusOrigin.Item2, "OPPONENT'S TURN.");
+            // Draw status texts
+            DrawText(owner, statusOrigin.Item1, statusOrigin.Item2, Config.Strings.OpponentsTurn);
+            DrawText(owner, statusOrigin.Item1, statusOrigin.Item2 + 1, Config.Strings.OpponentsTurnInstruction);
 
             owner.SwapBuffers();
             var input = owner.PollKey();

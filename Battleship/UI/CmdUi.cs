@@ -26,25 +26,37 @@ namespace Battleship.UI
             HandleWindowChange();
 
             // My field
-            for (int x = 0; x < FieldW; ++x)
-            {
-                for (int y = 0; y < FieldH; ++y)
-                {
-                    myField[x, y] = CellState.UNKNOWN;
-                }
-            }
+            ResetField(myField);
 
             // Enemy field
-            for (int x = 0; x < FieldW; ++x)
-            {
-                for (int y = 0; y < FieldH; ++y)
-                {
-                    enemyField[x, y] = CellState.UNKNOWN;
-                }
-            }
+            ResetField(enemyField);
 
             Logger.LogI("The UI created.");
         }
+
+        private void ResetField(CellState[,] field)
+        {
+            for (int x = 0; x < FieldW; ++x)
+            {
+                for (int y = 0; y < FieldH; ++y)
+                {
+                    field[x, y] = CellState.UNKNOWN;
+                }
+            }
+        }
+
+        private void ResetFramebuffer()
+        {
+            // Initialize frame buffer
+            for (int x = 0; x < WindowWidth; ++x)
+            {
+                for (int y = 0; y < WindowHeight; ++y)
+                {
+                    frameBuffer[x, y] = ' ';
+                }
+            }
+        }
+
         public void Shutdown()
         {
             Logger.LogI("Shutting down the UI...");
@@ -74,8 +86,10 @@ namespace Battleship.UI
             ConsoleKeyInfo input;
             while (!Console.KeyAvailable)
             {
+                // Do periodic check
                 DoCheck();
 
+                // If state changed
                 if (ShouldUnblock || !ShouldRun)
                 {
                     ShouldUnblock = false;
@@ -96,8 +110,7 @@ namespace Battleship.UI
         {
             Logger.LogD($"Changing UI state to '{newState}'...");
 
-            Console.Clear();
-
+            // Find the correct state
             switch (newState)
             {
             case UiState.INTER:
@@ -133,10 +146,13 @@ namespace Battleship.UI
                 break;
 
             default:
-                Logger.LogE($"Error getting unknown state: {newState}");
+                Logger.LogE($"Error switching to unknown state '{newState}'.");
                 break;
             }
 
+            ResetFramebuffer();
+
+            // So loops waiting for an input get unblocked
             ShouldUnblock = true;
         }
 
@@ -177,14 +193,7 @@ namespace Battleship.UI
             // Reinitialize frame buffer
             frameBuffer = new char[WindowWidth, WindowHeight];
 
-            // Initialize frame buffer
-            for (int x = 0; x < WindowWidth; ++x)
-            {
-                for (int y = 0; y < WindowHeight; ++y)
-                {
-                    frameBuffer[x, y] = ' ';
-                }
-            }
+            ResetFramebuffer();
         }
 
         

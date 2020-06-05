@@ -88,6 +88,8 @@ namespace Battleship
         {
             Logger.LogI("Process close required...");
 
+            Console.Clear();
+
             // Shut down the appliaction correctly
             AppInstance?.Shutdown();
         }
@@ -95,6 +97,8 @@ namespace Battleship
         /*
          * Member variables 
          */
+
+        /** Application instance. */
         private static ILogic AppInstance { get; set; }
     }
 }

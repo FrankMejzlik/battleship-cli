@@ -8,43 +8,9 @@ namespace Battleship
     /** Pure static class holding the app configuration. */
     static class Config
     {
-        /** Logging level. 
-         * 
-         * LEVELS:
-         *      0 => None
-         *      1 => Errors
-         *      2 => And warnings
-         *      3 => And info
-         *      4 => And debug info
-         */
-        public static int LogLevel {get; } = 4;
-
-        public static int TerminalFieldWidth {get; } = 4;
-        public static int TerminalFieldHeight {get; } = 2;
-
-        
-
-        /** Time limit in seconds for the action before the game will be terminated. */
-        public static int Timeout { get; } = 60;
-
-        /** Where the client game log will be written. */
-        public static string ClientGameLogFilepath { get; } = @"client_game_log.txt";
-
-        /** Where the server game log will be written. */
-        public static string ServerGameLogFilepath { get; } = @"server_game_log.txt";
-
-        /** Default port that will be used to start server at. */
-        public static int Port { get; } = 8888;
-
-        /** Default IP address to connect to while acting like a client. */
-        public static string Ip { get; } = "127.0.0.1";
-
-        /** Width of the game field. */
-        public static int FieldWidth { get; } = 10;
-
-        /** Height of the game field. */
-        public static int FieldHeight { get; } = 10;
-
+        /*******************************************
+         * vvvvvv  SETUP YOUR SHIPS HERE  vvvvvvv
+         *******************************************/
 
         /** Definitions of the ships players will place when the game starts. 
          * 
@@ -60,6 +26,53 @@ namespace Battleship
             new Ship() { Fields = new List<Field>() { new Field(-1, 0), new Field(0, 0), new Field(1, 0), new Field(0, -1), new Field(0, 1) } }
         };
 
+        /*******************************************
+         *  ^^^^^^^ SETUP YOUR SHIPS HERE ^^^^^^^
+         *******************************************/
+
+        /** Logging level. 
+         * 
+         * LEVELS:
+         *      0 => None
+         *      1 => Errors
+         *      2 => And warnings
+         *      3 => And info
+         *      4 => And debug info
+         */
+        public static int LogLevel { get; } = 4;
+
+        /** Time limit in seconds for the action before the game will be terminated. */
+        public static int Timeout { get; } = 60;
+
+
+        /** Where the client game log will be written. */
+        public static string ClientGameLogFilepath { get; } = @"client_game_log.txt";
+
+        /** Where the server game log will be written. */
+        public static string ServerGameLogFilepath { get; } = @"server_game_log.txt";
+
+
+        /** Default port that will be used to start server at. */
+        public static int Port { get; } = 8888;
+
+        /** Default IP address to connect to while acting like a client. */
+        public static string Ip { get; } = "127.0.0.1";
+
+
+        /** Width of the game field. */
+        public static int FieldWidth { get; } = 10;
+
+        /** Height of the game field. */
+        public static int FieldHeight { get; } = 10;
+
+        /** Number of horizontal terminal fields that are occupied by ONE play field. */
+        public static int TerminalFieldWidth { get; } = 4;
+
+        /** Number of vertical terminal fields that are occupied by ONE play field. */
+        public static int TerminalFieldHeight { get; } = 2;
+
+
+
         /** String constants to be used while coommunicating with the users. */
         public static class Strings
         {
@@ -70,15 +83,49 @@ namespace Battleship
             /*
              * Non-error strings.
              */
+            public static string Working { get; } = "Working...";
             public static string Timeout { get; } = "The game timed out!";
+            public static string ForcedExit { get; } = "Forcefull game termination.";
             public static string WaitingForOpponent { get; } = "Waiting for an opponent to join";
 
+            public static string MyFieldLabel { get; } = "=== My field ===";
+            public static string EnemyFieldLabel { get; } = "=== Enemy field ===";
+
+            public static string PlacingShips { get; } = "=>> PLACING SHIPS <<=";
+            public static string PlacingShipsInstruction { get; } = "Move origin point of each ship and place it with SPACEBAR key.";
+
+            public static string MyTurn { get; } = "=>> OPPONENT'S TURN <<=";
+            public static string MyTurnInstruction { get; } = "Aim with ARROWS and shoot with the SPACEBAR key.";
+            
+            public static string OpponentsTurn { get; } = "=>> OPPONENT'S TURN <<=";
+            public static string OpponentsTurnInstruction { get; } = "Take cover! Opponent is shooting at you!";
+
+            public static string YouWin { get; } = ":) :) :) You WON! (: (: (: ";
+            public static string YouLose { get; } = ":( :( :( You LOST! ): ): ): ";
+
+            
+
+
+            
             /*
              * User error strings.
              */
             public static string ErrConnectingFailed { get; } = "Connecting failed, sorry.";
             public static string ErrCannotConnectToTheServer { get; } = "Connecting failed, sorry.";
             public static string ErrServerCouldNotStart { get; } = "We're sorry but server couldn't start.";
+        }
+
+        public static class ScreenStrings
+        {
+            public static string InitialScreen
+            {
+                get =>
+                    $"\tDo you want to launch a server or connect as a client?\n" +
+                    $"  ----------------------------------------------------------------  \n" +
+                    $"\n" +
+                    $"\t  1) SERVER \n" +
+                    $"\t  2) CLIENT \n";
+            }
         }
     }
 }
