@@ -1,7 +1,7 @@
-﻿using Battleship.Logic;
+﻿
+using Battleship.Logic;
 using Battleship.UI;
 using System;
-using System.Linq;
 using System.Threading;
 
 namespace Battleship
@@ -18,7 +18,6 @@ namespace Battleship
         /*
          * Methods.
          */
-
         /** The application entry point. */
         public static void Main()
         {
@@ -84,6 +83,7 @@ namespace Battleship
             AppInstance = client;
         }
 
+        /** Handles the process termination. */
         static void HandleProcessExit(object sender, EventArgs e)
         {
             Logger.LogI("Process close required...");
@@ -97,7 +97,6 @@ namespace Battleship
         /*
          * Member variables 
          */
-
         /** Application instance. */
         private static ILogic AppInstance { get; set; }
     }

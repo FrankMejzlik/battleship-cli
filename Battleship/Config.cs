@@ -44,6 +44,9 @@ namespace Battleship
         /** Time limit in seconds for the action before the game will be terminated. */
         public static int Timeout { get; } = 60;
 
+        /** Minimal time in milisecond to wait between UI iterations. */
+        public static int UpdateWait { get; } = 100;
+
 
         /** Where the client game log will be written. */
         public static string ClientGameLogFilepath { get; } = @"client_game_log.txt";
@@ -59,6 +62,13 @@ namespace Battleship
         public static string Ip { get; } = "127.0.0.1";
 
 
+        /******************************************
+         *       Cmd UI specific config
+         *       
+         * This is not ideal place to be, but this 
+         * way, all config values are at one place.
+         *******************************************/
+
         /** Width of the game field. */
         public static int FieldWidth { get; } = 10;
 
@@ -70,6 +80,15 @@ namespace Battleship
 
         /** Number of vertical terminal fields that are occupied by ONE play field. */
         public static int TerminalFieldHeight { get; } = 2;
+
+        /** Field character markes. */
+        public static char ShipChar { get; } = 'O';
+        public static char UnknownChar { get; } = ' ';
+        public static char MissedHimChar { get; } = '~';
+        public static char HitHimChar { get; } = 'x';
+        public static char MissedMe { get; } = '*';
+        public static char HitMeChar { get; } = 'x';
+
 
 
 
@@ -86,7 +105,6 @@ namespace Battleship
             public static string Working { get; } = "Working...";
             public static string Timeout { get; } = "The game timed out!";
             public static string ForcedExit { get; } = "Forcefull game termination.";
-            public static string WaitingForOpponent { get; } = "Waiting for an opponent to join";
 
             public static string MyFieldLabel { get; } = "=== My field ===";
             public static string EnemyFieldLabel { get; } = "=== Enemy field ===";
@@ -94,19 +112,19 @@ namespace Battleship
             public static string PlacingShips { get; } = "=>> PLACING SHIPS <<=";
             public static string PlacingShipsInstruction { get; } = "Move origin point of each ship and place it with SPACEBAR key.";
 
-            public static string MyTurn { get; } = "=>> OPPONENT'S TURN <<=";
+            public static string MyTurn { get; } = "=>> YOUR TURN <<=";
             public static string MyTurnInstruction { get; } = "Aim with ARROWS and shoot with the SPACEBAR key.";
-            
+
             public static string OpponentsTurn { get; } = "=>> OPPONENT'S TURN <<=";
             public static string OpponentsTurnInstruction { get; } = "Take cover! Opponent is shooting at you!";
 
             public static string YouWin { get; } = ":) :) :) You WON! (: (: (: ";
             public static string YouLose { get; } = ":( :( :( You LOST! ): ): ): ";
 
-            
 
 
-            
+
+
             /*
              * User error strings.
              */
@@ -115,16 +133,72 @@ namespace Battleship
             public static string ErrServerCouldNotStart { get; } = "We're sorry but server couldn't start.";
         }
 
+        /** Templates for the UI screens. */
         public static class ScreenStrings
         {
-            public static string InitialScreen
+            public static string InitialScreen()
             {
-                get =>
+                return
+                    $"\n" +
+                    $"  ----------------------------------------------------------------  \n" +
                     $"\tDo you want to launch a server or connect as a client?\n" +
                     $"  ----------------------------------------------------------------  \n" +
                     $"\n" +
                     $"\t  1) SERVER \n" +
                     $"\t  2) CLIENT \n";
+            }
+
+            public static string FinalScreen(string msg)
+            {
+                return
+                    $"\n" +
+                    $"  ----------------------------------------------------------  \n" +
+                    $"                     END OF THE GAME\n" +
+                    $"  ----------------------------------------------------------  \n" +
+                    $"\n" +
+                    $"\t ==  {msg} == \n" +
+                    $"\n" +
+                    $"\t\tq) EXIT\n";
+            }
+
+            public static string SelectPortScreen()
+            {
+                return
+                    $"\n" +
+                    $"  ----------------------------------------------------------  \n" +
+                    $"     On what port? \n\t(for default {Config.Port} hit ENTER)\n" +
+                    $"  ----------------------------------------------------------  \n" +
+                    $"\n";
+            }
+
+            public static string SelectAddressScreen()
+            {
+                return
+                    $"\n" +
+                    $"  -------------------------------------------------------------------------  \n" +
+                    $"     What's the address? \n\t(for default {Config.Ip}:{Config.Port} hit ENTER)\n" +
+                    $"  -------------------------------------------------------------------------  \n" +
+                    $"\n";
+            }
+
+            public static string ConnectingScreen()
+            {
+                return
+                    $"\n" +
+                    $"  -------------------------------------------------------------------------  \n" +
+                    $"                     Connecting to the server...\n" +
+                    $"  -------------------------------------------------------------------------  \n" +
+                    $"\n";
+            }
+
+            public static string WaitingForConnectionScreen()
+            {
+                return
+                    $"\n" +
+                    $"  -------------------------------------------------------------------------  \n" +
+                    $"                   Waiting for client to connect...\n" +
+                    $"  -------------------------------------------------------------------------  \n" +
+                    $"\n";
             }
         }
     }

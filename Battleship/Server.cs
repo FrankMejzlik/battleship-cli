@@ -37,7 +37,7 @@ namespace Battleship
             listener = new TcpListener(IPAddress.Any, Port);
         }
 
-
+        /** Terminates the server and notifies the client. */
         public void Shutdown()
         {
             // No multiple shutdowns
@@ -56,13 +56,12 @@ namespace Battleship
             if (client != null)
             {
                 // Let the client know
-                PacketService.SendPacket(new Packet(PacketType.FIN), client, Shutdown);
+                PacketService.SendPacket(new Packet(PacketType.FIN), client, () => { });
 
                 // Close the TCP client
                 try
                 {
-                    client.GetStream().Close();
-                    client.Close();
+                    client.Dispose();
                 }
                 // If the client is disposed already
                 catch (ObjectDisposedException) { }
@@ -82,12 +81,15 @@ namespace Battleship
             Logger.LogI($"Server destructed.");
         }
 
+        /** Handles timeouted game session. */
         internal void HandleTimeout()
         {
             // Send info about the end to the client
             PacketService.SendPacket(new Packet(PacketType.TIMED_OUT), client, Shutdown);
 
+            // ------------------------ UI -----------------------------
             Ui.GotoState(UiState.FINAL, Config.Strings.Timeout);
+            // ------------------------ UI -----------------------------
         }
 
         public void Start()
@@ -97,7 +99,7 @@ namespace Battleship
             // Make sure that UI is interstate
             while (!Ui.IsInInterstate)
             {
-                Thread.Sleep(100);
+                Thread.Sleep(Config.UpdateWait);
             }
 
             try
@@ -119,7 +121,7 @@ namespace Battleship
             Logger.LogI($"Server started. Waiting for incomming connection...");
 
             // ------------------------ UI -----------------------------
-            Ui.GotoState(UiState.SERVER_WAITING, Config.Strings.WaitingForOpponent);
+            Ui.GotoState(UiState.SERVER_WAITING);
             // ------------------------ UI -----------------------------
 
             // Accept any incomming connection
@@ -144,6 +146,7 @@ namespace Battleship
             ListenToTheClient();
         }
 
+        /** Starts network listenning loop. */
         public void ListenToTheClient()
         {
             while (ShouldRun)
@@ -182,20 +185,18 @@ namespace Battleship
             }
         }
 
+        /** Check winning condition. */
         private int CheckFinished()
         {
-            // Find any unsunk ship
-            bool clientWon = !(ServerShips.Any(ship =>
-              ship.IsSunk == false
-            ));
+            // Find any unsunk ship among server ships
+            bool clientWon = !(ServerShips.Any(ship => ship.IsSunk == false));
             if (clientWon)
             {
                 return 1;
             }
 
-            bool servertWon = !(ClientShips.Any(ship =>
-              ship.IsSunk == false
-            ));
+            // Fin any unsung ships among client ships
+            bool servertWon = !(ClientShips.Any(ship => ship.IsSunk == false));
             if (servertWon)
             {
                 return -1;
@@ -203,8 +204,9 @@ namespace Battleship
             return 0;
         }
 
-        /**
-         * Client provided locations of the ships - this is start of the game itself.
+        /**Client provided locations of the ships - this is start of the game itself.
+         * 
+         * \param clientShips   List of the client ships.
          */
         private void HandleClientSetShips(List<Ship> clientShips)
         {
@@ -212,8 +214,7 @@ namespace Battleship
 
             Logger.LogI($"Client set ships.");
 
-            // Game starts here <=
-
+            // Game starts here
             if (MyTurn)
             {
                 Ui.GotoState(UiState.YOUR_TURN);
@@ -227,8 +228,9 @@ namespace Battleship
             }
         }
 
-        /**
-         * Handles event that client fired at the server.
+        /** Handles event that client fired at the server.
+         *
+         * \pram coordsFired    Target excel coordinates.
          */
         private void HandleClientFireAt(string coordsFired)
         {
@@ -266,28 +268,14 @@ namespace Battleship
             }
             // ---------------------------------------------------------
 
-            // -----------------
-            // Turn switch
-            TurnSwitch();
-            // -----------------
+            // Switch turn
+            SwitchTurn();
         }
 
 
-        private void PutShipsToUi(Ship ship)
-        {
-            foreach (var field in ship.Fields)
-            {
-                var coords = Utils.FromExcelCoords(field.Coords);
-                Ui.HandlePlaceShipAt(coords.Item1, coords.Item2);
-
-                field.IsShip = true;
-            }
-        }
-
-
-
-        /**
-         * Server fires, result is send to the client.
+        /** Server fires, result is send to the client.
+         * 
+         * \pram coordsFired    Target excel coordinates.
          */
         public void Fire(string coordsFired)
         {
@@ -347,27 +335,31 @@ namespace Battleship
 
             // -----------------
             // Turn switch
-            TurnSwitch();
+            SwitchTurn();
             // -----------------
 
             Logger.LogI(FireResponseTypeExt.ToString(fireResponse));
         }
 
+        /** Simulates fire at the given coordinates.
+         * 
+         * \param coordsFired   Target excel coordinates.
+         */
         private FireResponseType FireField(string coordsFired)
         {
             FireResponseType fireResponse;
 
+            // Convert to numeric values
             var coords = Utils.FromExcelCoords(coordsFired);
 
-
+            // Find shit that is placed at this cooedinates (if any)
             var shipOnCoords = ServerShips.FirstOrDefault(ship =>
                ship.Fields.Any(field =>
                    field.Coords.Equals(coordsFired)
                )
             );
 
-
-
+            // If no ship there
             if (shipOnCoords == null)
             {
                 fireResponse = FireResponseType.WATER;
@@ -376,10 +368,12 @@ namespace Battleship
             {
                 var fieldOnCoords = shipOnCoords.Fields.First(field => field.Coords == coordsFired);
                 fieldOnCoords.IsRevealed = true;
+
                 var isShipDestroyed = !shipOnCoords.Fields.Any(field => field.IsRevealed == false);
 
                 shipOnCoords.IsSunk = isShipDestroyed;
 
+                // Check if it was the last piece of the ship
                 if (isShipDestroyed)
                 {
                     fireResponse = FireResponseType.SUNK;
@@ -393,19 +387,8 @@ namespace Battleship
             return fireResponse;
         }
 
-        public void SendMessage(string message)
-        {
-            if (client == null)
-            {
-                return;
-            }
-
-            PacketService.SendPacket(new Packet(PacketType.MESSAGE, message), client, Shutdown);
-
-            Logger.LogI("Message sent: " + message);
-        }
-
-        private void TurnSwitch()
+        /** Checks win condition and swaps turns. */
+        private void SwitchTurn()
         {
             // Check end of the game
             var winner = CheckFinished();
@@ -415,7 +398,7 @@ namespace Battleship
             if (winner == -1)
             {
                 Ui.GotoState(UiState.FINAL, Config.Strings.YouWin);
-                p = new Packet(PacketType.YOU_LOSE, Config.Strings.YouWin);
+                p = new Packet(PacketType.YOU_LOSE, Config.Strings.YouLose);
 
                 // Stop the timer
                 Timer.Stop();
@@ -424,7 +407,7 @@ namespace Battleship
             else if (winner == 1)
             {
                 Ui.GotoState(UiState.FINAL, Config.Strings.YouLose);
-                p = new Packet(PacketType.YOU_WIN, Config.Strings.YouLose);
+                p = new Packet(PacketType.YOU_WIN, Config.Strings.YouWin);
 
                 // Stop the timer
                 Timer.Stop();
@@ -453,6 +436,11 @@ namespace Battleship
             PacketService.SendPacket(p, client, Shutdown);
         }
 
+        /** Handles fire at the provided coordinates. 
+         * 
+         * \param x     X coord.
+         * \param x     Y coord.
+         */
         public void FireAt(int x, int y)
         {
             // Convert to excel coordinates
@@ -496,6 +484,7 @@ namespace Battleship
 
         }
 
+        /** Confirms that server ships are placed. */
         public void PlaceShips()
         {
             // We literally do nothing
@@ -506,16 +495,31 @@ namespace Battleship
         /*
          * Member variables
          */
+        /** True if it's my turn. */
         private bool MyTurn { get; set; } = false;
 
+        /** Indicates that app is running. */
         public bool ShouldRun { get; set; } = true;
+
+        /** Port this server listens at. */
         private int Port { get; set; }
+
+        /** UI this server uses. */
         private IUi Ui { get; set; }
+
+        /** Ships of the server. */
         private List<Ship> ServerShips { get; set; } = new List<Ship>();
+
+        /** Ships of the client. */
         private List<Ship> ClientShips { get; set; } = new List<Ship>();
 
+        /** TCP listener used for listening to the client messages. */
         private readonly TcpListener listener;
+
+        /** TCP client used for listening to the client messages. */
         private TcpClient client;
+
+        /** Indicates that this instance has been already destructed. */
         private bool IsServerDestructed { get; set; } = false;
     }
 }

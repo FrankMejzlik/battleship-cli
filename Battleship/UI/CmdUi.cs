@@ -150,6 +150,7 @@ namespace Battleship.UI
                 break;
             }
 
+            // Reset framebuffer to avoid gibberish in some 
             ResetFramebuffer();
 
             // So loops waiting for an input get unblocked

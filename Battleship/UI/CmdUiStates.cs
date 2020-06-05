@@ -6,18 +6,30 @@ using System.Threading;
 
 namespace Battleship.UI
 {
+    /** Common interface for IUi states for the Battleships game. */
     public interface ICmdUiState
     {
-        public abstract bool Update(CmdUi owner);
+        /** Updates the UI. 
+         *
+         * \param owner Ownning UI instance.
+         */
+        public abstract void Update(CmdUi owner);
     }
 
 
-    public class RenderingCmdUiState : ICmdUiState
+    /** State that needs to be rerendered based on user input. 
+     * 
+     * \see PlacingShipsState
+     * \see YourTurnState
+     * \see OpponetsTurnState
+     */
+    public abstract class RenderingCmdUiState : ICmdUiState
     {
-        public virtual bool Update(CmdUi owner)
-        {
-            return true;
-        }
+        /** Updates the UI and RENDERS it out if needed. 
+         *
+         * \param owner Ownning UI instance.
+         */
+        public abstract void Update(CmdUi owner);
 
         protected void HandleInput(CmdUi owner, string keyStr)
         {
@@ -137,28 +149,47 @@ namespace Battleship.UI
                         var xxx = originX + ixx;
                         var yyy = originY + iyy + 1;
 
+                        // The primary cursor
                         owner.frameBuffer[xxx + 0, yyy] = '<';
                         owner.frameBuffer[xxx + 1, yyy] = '+';
                         owner.frameBuffer[xxx + 2, yyy] = '>';
 
-                        if (CurShip != null)
-                        {
-                            foreach (var c in CurShip.Fields)
-                            {
-                                var cx = c.X * 4;
-                                var cy = c.Y * 2;
-
-                                try
-                                {
-                                    owner.frameBuffer[xxx + cx + 0, yyy + cy] = 'O';
-                                    owner.frameBuffer[xxx + cx + 1, yyy + cy] = 'O';
-                                    owner.frameBuffer[xxx + cx + 2, yyy + cy] = 'O';
-                                }
-                                catch (IndexOutOfRangeException) { }
-                            }
-                        }
+                        // Ship around the cursor
+                        DrawShipAroundCursor(owner, xxx, yyy);
                     }
 
+                }
+            }
+        }
+
+        /** Draws current ship shape around the cursor (used when placing the ship).
+         * 
+         * \param owner     Reference to the owning UI.
+         * \param originX         X origin coord.
+         * \param originY         Y origin coord.
+         */
+        private void DrawShipAroundCursor(CmdUi owner, int originX, int originY)
+        {
+            // If ship bound to the cursor
+            if (CurShip != null)
+            {
+                foreach (var c in CurShip.Fields)
+                {
+                    // Get absolute terminal coordinates
+                    var xxx = c.X * Config.TerminalFieldWidth + originX;
+                    var yyy = c.Y * Config.TerminalFieldHeight + originY;
+
+                    var maxX = owner.FieldH * Config.TerminalFieldHeight;
+                    var maxY = owner.FieldW  * Config.TerminalFieldWidth;
+
+                    var finY = Math.Clamp(yyy, 0, maxX);
+
+                    // Draw 3 horizontal terminal fields (width of one field)
+                    for (int off = 0; off < 3; ++off)
+                    {
+                        var finX = Math.Clamp(xxx + off, 0, maxY);
+                        owner.frameBuffer[finX, finY] = Config.ShipChar;
+                    }
                 }
             }
         }
@@ -170,7 +201,7 @@ namespace Battleship.UI
                 for (int ix = 0; ix < owner.FieldH; ++ix)
                 {
                     var content = field[ix, iy];
-             
+
                     // Compute the offsets in real terminal cells
                     var ixx = ix * Config.TerminalFieldWidth + 1;
                     var iyy = iy * Config.TerminalFieldHeight;
@@ -207,15 +238,18 @@ namespace Battleship.UI
             }
         }
 
+        /*
+         * Member variables
+         */
         /** Computes absolute position in terminal window of my grid origin. */
         protected (int, int) MyGridOrigin(CmdUi owner) => (2, 0);
 
         /** Computes absolute position in terminal window of the opponent's grid origin. */
-        protected (int, int) EnemyGridOrigin(CmdUi owner) =>  (owner.FieldW * Config.TerminalFieldWidth + (2 * Config.TerminalFieldWidth), 0);
+        protected (int, int) EnemyGridOrigin(CmdUi owner) => (owner.FieldW * Config.TerminalFieldWidth + (2 * Config.TerminalFieldWidth), 0);
 
         /** Computes absolute position in terminal window of the status text origin. */
-        protected (int, int) StatusOrigin(CmdUi owner) =>  (10, MyGridOrigin(owner).Item2 + owner.FieldH * Config.TerminalFieldHeight + 2);
-        
+        protected (int, int) StatusOrigin(CmdUi owner) => (10, MyGridOrigin(owner).Item2 + owner.FieldH * Config.TerminalFieldHeight + 2);
+
         /** Current cursor position. */
         protected ValueTuple<int, int> CurPos { get; set; } = (Config.FieldWidth / 2, Config.FieldHeight / 2);
 
@@ -223,24 +257,41 @@ namespace Battleship.UI
         protected Ship CurShip { get; set; } = null;
     }
 
+    /** Intermediate state for UI to go to if it wants to switch states. 
+     *
+     * This state tels user to wait. This is state that UI jumps to every
+     * time event that changes states happen. There must be explicit command
+     * from the logic to switch state from here.
+     * 
+     * In other words, UI itself cannot go to any other state than intermediate.
+     */
     class InterState : ICmdUiState
     {
-        public bool Update(CmdUi owner)
+        /** Show that user needs to wait.
+         *
+         * \param owner Ownning UI instance.
+         */
+        public void Update(CmdUi owner)
         {
             Console.Clear();
-            Console.WriteLine(Config.Strings.Working);
-            Thread.Sleep(50);
 
-            return true;
+            Console.WriteLine(Config.Strings.Working);
+
+            Thread.Sleep(Config.UpdateWait);
         }
     }
 
+    /** State for decision between client/server version. */
     class InitialState : ICmdUiState
     {
-        public bool Update(CmdUi owner)
+        /** Shows initial state - chose between server/client.
+         *
+         * \param owner Ownning UI instance.
+         */
+        public void Update(CmdUi owner)
         {
             Console.Clear();
-            Console.WriteLine(Config.ScreenStrings.InitialScreen);
+            Console.WriteLine(Config.ScreenStrings.InitialScreen());
 
             // Loop waiting for an input
             while (true)
@@ -251,10 +302,7 @@ namespace Battleship.UI
                 if (key.KeyChar == '1')
                 {
                     Console.Clear();
-                    Console.WriteLine();
-                    Console.WriteLine($"\tOn what port? (for default {Config.Port} hit ENTER)");
-                    Console.WriteLine("  ----------------------------------------------------  ");
-                    Console.WriteLine();
+                    Console.WriteLine(Config.ScreenStrings.SelectPortScreen());
 
                     int port = Config.Port;
                     var line = Console.ReadLine();
@@ -285,13 +333,10 @@ namespace Battleship.UI
                 else if (key.KeyChar == '2')
                 {
                     Console.Clear();
-                    Console.WriteLine();
-                    Console.WriteLine($"\tWhat's the address? (for default {Config.Ip}:{Config.Port} hit ENTER)");
-                    Console.WriteLine("  ------------------------------------------------------------------------  ");
-                    Console.WriteLine();
-
-
-                    string IP = "127.0.0.1";
+                    Console.WriteLine(Config.ScreenStrings.SelectAddressScreen());
+    
+                    // Get default values
+                    string IP = Config.Ip;
                     int port = Config.Port;
 
                     var line = Console.ReadLine();
@@ -308,8 +353,8 @@ namespace Battleship.UI
                         catch (FormatException)
                         {
                             port = Config.Port;
-                            Logger.LogE("Invalid address:" + line);
-                            Logger.LogI($"Using default: {IP}:{port}");
+                            Logger.LogE($"Invalid address '{line}'.");
+                            Logger.LogI($"Using default '{IP}:{port}'.");
                         }
                     }
 
@@ -319,6 +364,7 @@ namespace Battleship.UI
                     // ----------------------
                     break;
                 }
+
                 else if (key.KeyChar == 'q')
                 {
                     owner.Shutdown();
@@ -327,68 +373,88 @@ namespace Battleship.UI
 
             // Go to interstate
             owner.GotoState(UiState.INTER);
-
-            return true;
         }
     }
 
+    /** State for phase of connecting to the server. */
     class ClientConnectionState : ICmdUiState
     {
-        public bool Update(CmdUi owner)
+        /** Shows that client is connecting to the server.
+         *
+         * \param owner Ownning UI instance.
+         */
+        public void Update(CmdUi owner)
         {
-            Console.SetCursorPosition(0, 0);
-            Console.WriteLine("Connecting to the server...");
-            Thread.Sleep(50);
+            Console.Clear();
+            Console.WriteLine(Config.ScreenStrings.ConnectingScreen());
 
-            return true;
+            Thread.Sleep(Config.UpdateWait * 10);
         }
     }
 
+    /** State for waiting for the client phase. */
     class ServerWaitingState : ICmdUiState
     {
-        public bool Update(CmdUi owner)
+        /** Shows that we're waiting for a client connection.
+         *
+         * \param owner Ownning UI instance.
+         */
+        public void Update(CmdUi owner)
         {
-            Console.SetCursorPosition(0, 0);
-            Console.WriteLine("Waiting for the client to connect...");
-            Thread.Sleep(50);
 
-            return true;
+            Console.Clear();
+            Console.WriteLine(Config.ScreenStrings.WaitingForConnectionScreen());
+
+            Thread.Sleep(Config.UpdateWait * 10);
         }
     }
 
+    /** State where I have to place all the ships. */
     class PlacingShipsState : RenderingCmdUiState
     {
+        /*
+         * Methods
+         */
+        /** Ctor initializes ships we will need to place. */
         public PlacingShipsState()
         {
+            // Iterate over all ships that needs to be placed
             foreach (var s in Config.ShipsToPlace)
             {
                 ShipsToPlace.Add(s);
             }
         }
 
-        public override bool Update(CmdUi owner)
+        /** Handles update stete for placing the ships.
+         *
+         * \param owner Ownning UI instance.
+         */
+        public override void Update(CmdUi owner)
         {
+            // Get absolute origin point coordinates
             var myGridOrigin = MyGridOrigin(owner);
             var enemyGridOrigin = EnemyGridOrigin(owner);
             var statusOrigin = StatusOrigin(owner);
 
-
-            // Place it to the cursor
+            // Place the ship onto the cursor if stil placing
             CurShip = ShipsToPlace.Count > 0 ? ShipsToPlace[0] : null;
 
             // Draw grid for me
             DrawGrid(owner, myGridOrigin.Item1, myGridOrigin.Item2, Config.Strings.MyFieldLabel, owner.myField, true);
-                
+
             // Draw grid for the enemy
             DrawGrid(owner, enemyGridOrigin.Item1, enemyGridOrigin.Item2, Config.Strings.EnemyFieldLabel, owner.enemyField, false);
 
             // Draw status to the UI
-            DrawText(owner, statusOrigin.Item1, statusOrigin.Item2, Config.Strings.PlacingShips + $"\t {ShipsToPlace.Count} ships to place left.");
+            string pluralSuffix = ShipsToPlace.Count != 1 ? "s" : "";
+            DrawText(owner, statusOrigin.Item1, statusOrigin.Item2, Config.Strings.PlacingShips + $"\t {ShipsToPlace.Count} ship{pluralSuffix} to place left.");
             DrawText(owner, statusOrigin.Item1, statusOrigin.Item2 + 1, Config.Strings.PlacingShipsInstruction);
 
+            // Render it
             owner.SwapBuffers();
-            var input = owner.PollKey();
 
+            // Handle common input
+            var input = owner.PollKey();
             HandleInput(owner, input.Key.ToString());
             // Handle input specific to placing ships
             HandlePlacingInput(owner, input.Key.ToString());
@@ -399,12 +465,16 @@ namespace Battleship.UI
                 // Confirm it
                 owner.Logic.PlaceShips();
             }
-
-            return true;
         }
 
+        /** Handles input for placing the ships logic. 
+         * 
+         * \param owner         Owning UI.
+         * \param keyString     String decribing the pressed key.
+         */
         protected void HandlePlacingInput(CmdUi owner, string keyStr)
         {
+            // Don't do anyhting if nothing to place.
             if (ShipsToPlace.Count == 0)
             {
                 return;
@@ -413,19 +483,33 @@ namespace Battleship.UI
             switch (keyStr)
             {
             case "Spacebar":
-                
+                // Place this ship
                 owner.Logic.PlaceShip(CurPos.Item1, CurPos.Item2, ShipsToPlace[0]);
+
+                // Remove it fron the queue
                 ShipsToPlace.RemoveAt(0);
                 break;
             }
         }
 
+
+        /*
+         * Member variables
+         */
+        /** Remaining ships to place into the field. */
         public List<Ship> ShipsToPlace { get; set; } = new List<Ship>();
     }
 
+    /** State where I choose field to shoot at. */
     class YourTurnState : RenderingCmdUiState
     {
-        public override bool Update(CmdUi owner)
+        /** Handles update for state of my turn.
+         *
+         * I see both playfields, and I have cursor for shooting.
+         * 
+         * \param owner Ownning UI instance.
+         */
+        public override void Update(CmdUi owner)
         {
             var myGridOrigin = MyGridOrigin(owner);
             var enemyGridOrigin = EnemyGridOrigin(owner);
@@ -441,18 +525,27 @@ namespace Battleship.UI
             DrawText(owner, statusOrigin.Item1, statusOrigin.Item2, Config.Strings.MyTurn);
             DrawText(owner, statusOrigin.Item1, statusOrigin.Item2 + 1, Config.Strings.MyTurnInstruction);
 
+            // Render it
             owner.SwapBuffers();
+
+            // Handle input
             var input = owner.PollKey();
             HandleInput(owner, input.Key.ToString());
-
-            return true;
         }
     }
 
+    /** State where I wait for opponent to strike. */
     class OpponetsTurnState : RenderingCmdUiState
     {
-        public override bool Update(CmdUi owner)
+        /** Handles update for state of opponents turn.
+         * 
+         * I see both playfields, but I dont have any cursor.
+         *
+         * \param owner Ownning UI instance.
+         */
+        public override void Update(CmdUi owner)
         {
+            // Got absolut coordinates for UI elements
             var myGridOrigin = MyGridOrigin(owner);
             var enemyGridOrigin = EnemyGridOrigin(owner);
             var statusOrigin = StatusOrigin(owner);
@@ -467,32 +560,36 @@ namespace Battleship.UI
             DrawText(owner, statusOrigin.Item1, statusOrigin.Item2, Config.Strings.OpponentsTurn);
             DrawText(owner, statusOrigin.Item1, statusOrigin.Item2 + 1, Config.Strings.OpponentsTurnInstruction);
 
+            // Render it
             owner.SwapBuffers();
-            var input = owner.PollKey();
 
-            return true;
+            // We don't need the input, we just need to block the thread to avoid excessive rerendering
+            owner.PollKey();
         }
     }
 
+    /** State showing the result of the game or error that happened. */
     class FinalState : ICmdUiState
     {
+        /**
+         * Methods
+         */
+        /** Consturct this state with the message to show to the user. */
         public FinalState(string m)
         {
-            msg = m;
+            Msg = m;
         }
 
-        public bool Update(CmdUi owner)
+        /** Updates the UI showing end of the game. 
+         *
+         * \param owner Ownning UI instance.
+         */
+        public void Update(CmdUi owner)
         {
             Console.Clear();
-            Console.WriteLine();
-            Console.WriteLine("                     END OF THE GAME");
-            Console.WriteLine("  ----------------------------------------------------------  ");
-            Console.WriteLine();
-            Console.WriteLine("\t == " + msg + " == ");
-            Console.WriteLine();
-
-            Console.WriteLine("\t\tq) EXIT");
-
+            Console.WriteLine(Config.ScreenStrings.FinalScreen(Msg));
+            
+            // Wait for an input
             while (true)
             {
                 // Wait for the input
@@ -503,10 +600,12 @@ namespace Battleship.UI
                     break;
                 }
             }
-
-            return false;
         }
 
-        string msg = "";
+        /**
+         * Member variables
+         */
+         /** Message to be displayed. */
+        private string Msg { get; } = "";
     }
 }

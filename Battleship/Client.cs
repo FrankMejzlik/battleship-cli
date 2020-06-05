@@ -31,7 +31,7 @@ namespace Battleship
             Ui = ui;
 
             // We are the client
-            client = new TcpClient();
+            TcpClient = new TcpClient();
         }
 
         /** Properly terminates the client and lets the server know about it (if needed). */
@@ -47,16 +47,13 @@ namespace Battleship
             ShouldRun = false;
 
             // Send info about the end to the client
-            PacketService.SendPacket(new Packet(PacketType.FIN), client, Shutdown);
+            PacketService.SendPacket(new Packet(PacketType.FIN), TcpClient, () => { });
 
-            // Write client game log
-            System.IO.File.WriteAllText(Config.ClientGameLogFilepath, GameLog.ToString());
 
             // Close the TCP client
             try
             {
-                client.GetStream().Close();
-                client.Close();
+                TcpClient.Dispose();
             }
             // If the client is disposed already
             catch (ObjectDisposedException) { }
@@ -72,6 +69,7 @@ namespace Battleship
             Logger.LogI($"Client destructed.");
         }
 
+        /** Connects to the server or fails if something happens. */
         public void Connect()
         {
             Logger.LogI($"Connecting to the server...");
@@ -89,7 +87,7 @@ namespace Battleship
                 // ------------------------ UI -----------------------------
 
                 // Do the connecting
-                client.Connect(Host, Port);
+                TcpClient.Connect(Host, Port);
             }
             catch (SocketException ex)
             {
@@ -101,9 +99,9 @@ namespace Battleship
             }
 
             // Check if everything went OK
-            if (client.Connected)
+            if (TcpClient.Connected)
             {
-                Logger.LogI($"Connected to the server at {client.Client.RemoteEndPoint}");
+                Logger.LogI($"Connected to the server at {TcpClient.Client.RemoteEndPoint}");
 
                 // ------------------------ UI -----------------------------
                 Ui.GotoState(UiState.PLACING_SHIPS);
@@ -121,12 +119,13 @@ namespace Battleship
             }
         }
 
-
+        /** Starts the network listening loop where we accept packets from the server. */
         public void ListenToTheServer()
         {
+            // Main loop
             while (ShouldRun)
             {
-                var packet = PacketService.ReceivePacket(client, Shutdown);
+                var packet = PacketService.ReceivePacket(TcpClient, Shutdown);
 
                 // Act on recieving a valid packet
                 if (packet != null)
@@ -239,27 +238,30 @@ namespace Battleship
             }
         }
 
+        /** Places the selected ships and sends then to the server. */
         public void PlaceShips()
         {
             // Send those ships to the server
             var clientShipsSerialized = JsonConvert.SerializeObject(ClientShips);
 
-            PacketService.SendPacket(new Packet(PacketType.SET_CLIENT_SHIPS, clientShipsSerialized), client, Shutdown);
+            PacketService.SendPacket(new Packet(PacketType.SET_CLIENT_SHIPS, clientShipsSerialized), TcpClient, Shutdown);
         }
 
-        public void SendMessage(string message)
-        {
-            PacketService.SendPacket(new Packet(PacketType.MESSAGE, message), client, Shutdown);
-            Logger.LogI($"Send message '{message}'.");
-        }
 
+        /** Fires at the provided coordinates. 
+         * 
+         * \param x     X coordinate of the ship origin point.
+         * \param y     Y coordinate of the ship origin point.
+         */
         public void FireAt(int x, int y)
         {
             // Convert to the Excel coordinates
             var strCoords = Utils.ToExcelCoords(x, y);
 
-            PacketService.SendPacket(new Packet(PacketType.FIRE, strCoords), client, Shutdown);
             Logger.LogI($"Firing at the '{strCoords}' field.");
+
+            // Let server know
+            PacketService.SendPacket(new Packet(PacketType.FIRE, strCoords), TcpClient, Shutdown);
         }
 
         /**
@@ -299,18 +301,25 @@ namespace Battleship
         /*
          * Member variables
          */
-
-
+        /** Ships of the client. */
         private List<Ship> ClientShips { get; set; } = new List<Ship>();
 
-        private StringBuilder GameLog { get; set; } = new StringBuilder();
+        /** Address of the server. */
         private string Host { get; set; }
+
+        /** Port of the server. */
         private int Port { get; set; }
+
+        /** Instance of the UI. */
         private IUi Ui { get; set; }
 
-        private readonly TcpClient client;
+        /** TCP client used for communication with the server. */
+        private TcpClient TcpClient { get; set; }
 
+        /** Indicates that app should run. */
         public bool ShouldRun { get; set; } = true;
+
+        /** Indicates if the client has been already destructed. */
         private bool IsClientDesstructed { get; set; } = false;
     }
 }

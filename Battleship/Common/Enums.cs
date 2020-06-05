@@ -8,25 +8,37 @@ namespace Battleship.Common
     public enum PacketType
     {
         /** There was an error, you should terminate. */
-        ERROR = 0,
-        MESSAGE = 1,
-        SET_CLEINT_SHIPS = 2,
-        FIRE = 3,
-        FIRE_REPONSE = 4,
-        YOUR_TURN = 5,
-        OPPONENTS_TURN = 6,
-        SET_CLIENT_SHIPS = 7,
+        ERROR,
+
+        /** Message to the user - not used yet. */
+        MESSAGE,
+
+        /** Fire at the position. */
+        FIRE,
+
+        /** Result of the previous fire. */
+        FIRE_REPONSE,
+
+        /** You shoot now. */
+        YOUR_TURN,
+
+        /** You wait. */
+        OPPONENTS_TURN,
+
+        /** Client send us his ships. */
+        SET_CLIENT_SHIPS,
 
         /** Indicates that the addressee won. */
-        YOU_WIN = 8,
+        YOU_WIN,
 
         /** Indicates that the addressee lost. */
-        YOU_LOSE = 9,
+        YOU_LOSE,
 
         /** Indicates that game ended due to long inactivity */
-        TIMED_OUT = 10,
+        TIMED_OUT,
 
-        FIN = 11
+        /** End of communication. */
+        FIN
 
     }
 
@@ -52,36 +64,37 @@ namespace Battleship.Common
         HIT_ME
     };
 
+    /** Extends CellState enumeration. */
     public static class CellStateExt
     {
+        /** Converts enum to the representative character */
         public static char ToChar(this CellState state)
         {
             switch (state)
             {
-            case CellState.MISSED_HIM:
-                return '~';
-
-            case CellState.UNKNOWN:
-                return ' ';
-
             case CellState.SHIP:
-                return 'O';
+                return Config.ShipChar;
+
+            case CellState.MISSED_HIM:
+                return Config.MissedHimChar;
 
             case CellState.HIT_HIM:
-                return 'X';
+                return Config.HitHimChar;
 
             case CellState.MISSED_ME:
-                return '*';
+                return Config.MissedMe;
 
             case CellState.HIT_ME:
-                return 'X';
+                return Config.HitMeChar;
+
+            case CellState.UNKNOWN:
+            default:
+                return Config.UnknownChar;
             }
-            
-            return ' ';
         }
     }
 
-        
+
 
     /** Types of results for one shot. */
     public enum FireResponseType
@@ -111,17 +124,20 @@ namespace Battleship.Common
             {
             case FireResponseType.WATER:
                 return Config.Strings.Water;
+
             case FireResponseType.HIT:
                 return Config.Strings.Hit;
+
             case FireResponseType.SUNK:
                 return Config.Strings.Sunk;
+
             default:
                 return string.Empty;
             }
         }
     }
 
-
+    /** Represent ONE state UI is currently in. */
     public enum UiState
     {
         /** Interstate to which the IUi goes after it triggers action that will (probably)
@@ -195,6 +211,4 @@ namespace Battleship.Common
          */
         FINAL
     }
-
-    
 }
