@@ -1,42 +1,36 @@
-﻿using Battleship.Forms;
+﻿using Battleship.Logic;
 using Battleship.UI;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 
 namespace Battleship
 {
+    /**
+     * The main singleton class representing one party of the Battleships game.
+     * 
+     * The game first initializes the UI where the user provides wheter he/she wants
+     * to launch the server or the client version. Based on that, specified instance 
+     * of Logic is instantiated and launched.
+     */
     static class Program
     {
-        /** 
-         * The application entry point. 
-         * 
-         * \param args      Launch arguments.
-         * \return  Return code. 
-         *          - 0 means success 
-         *          - other values indicate errors.
+        /*
+         * Methods.
          */
-        public static int Main(string[] args)
+
+        /** The application entry point. */
+        public static void Main()
         {
+            Logger.LogI("Starting the application...");
+
+            /* We need to let the other side know when the app is forcefully closed.
+               Therefore we set exit process handler. */
             AppDomain.CurrentDomain.ProcessExit += new EventHandler(HandleProcessExit);
 
-            if (args.Contains("gui"))
-            {
-                Logger.LogI("Launching GUI version.");
-                //Application.EnableVisualStyles();
-                //Application.SetCompatibleTextRenderingDefault(false);
-                //Application.Run(new MenuForm());
-            }
-            else
-            {
-                Logger.LogI("Launching CLI version.");
-                CmdUi ui = new CmdUi();
-                ui.Launch();
-            }
-            return 0;
+            // We launch the UI
+            CmdUi ui = new CmdUi();
+            ui.Launch();
         }
 
         /** 
@@ -92,9 +86,15 @@ namespace Battleship
 
         static void HandleProcessExit(object sender, EventArgs e)
         {
+            Logger.LogI("Process close required...");
+
+            // Shut down the appliaction correctly
             AppInstance?.Shutdown();
         }
 
-        private static Logic AppInstance { get; set; }
+        /*
+         * Member variables 
+         */
+        private static ILogic AppInstance { get; set; }
     }
 }

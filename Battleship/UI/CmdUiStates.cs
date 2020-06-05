@@ -1,8 +1,7 @@
-﻿using Battleship.Models;
+﻿
+using Battleship.Common;
 using System;
 using System.Collections.Generic;
-using System.Data;
-using System.Text;
 using System.Threading;
 
 namespace Battleship.UI
@@ -49,7 +48,7 @@ namespace Battleship.UI
             }
         }
 
-        protected void drawGrid(CmdUi owner, int originX, int originY, string title, eCellState[,] field, bool cursor)
+        protected void drawGrid(CmdUi owner, int originX, int originY, string title, CellState[,] field, bool cursor)
         {
             // Draw text
             for (int i = 0; i < title.Length; ++i)
@@ -67,6 +66,7 @@ namespace Battleship.UI
                     var ixx = ix * 4;
                     owner.frameBuffer[originX + ixx, originY + iyy] = '|';
                     owner.frameBuffer[originX + ixx, originY + iyy + 1] = '|';
+                    owner.frameBuffer[originX + ixx, originY + iyy + 2] = '|';
                 }
             }
             for (int ix = 0; ix < owner.FieldH; ++ix)
@@ -79,6 +79,7 @@ namespace Battleship.UI
                     owner.frameBuffer[originX + ixx + 1, originY + iyy] = '-';
                     owner.frameBuffer[originX + ixx + 2, originY + iyy] = '-';
                     owner.frameBuffer[originX + ixx + 3, originY + iyy] = '-';
+                    owner.frameBuffer[originX + ixx + 4, originY + iyy] = '-';
                 }
             }
 
@@ -90,18 +91,18 @@ namespace Battleship.UI
                 {
                     var ixx = ix * 4 + 1;
 
-                    var content = field[iy, ix];
+                    var content = field[ix, iy];
 
-                    if (content == eCellState.SHIP || content == eCellState.HIT_HIM || content == eCellState.HIT_ME)
+                    if (content == CellState.SHIP || content == CellState.HIT_HIM || content == CellState.HIT_ME)
                     {
-                        owner.frameBuffer[originX + ixx + 0, originY + iyy + 1] = owner.CellStateToString(content);
-                        owner.frameBuffer[originX + ixx + 1, originY + iyy + 1] = owner.CellStateToString(content);
-                        owner.frameBuffer[originX + ixx + 2, originY + iyy + 1] = owner.CellStateToString(content);
+                        owner.frameBuffer[originX + ixx + 0, originY + iyy + 1] = content.ToChar();
+                        owner.frameBuffer[originX + ixx + 1, originY + iyy + 1] = content.ToChar();
+                        owner.frameBuffer[originX + ixx + 2, originY + iyy + 1] = content.ToChar();
                     }
                     else
                     {
                         owner.frameBuffer[originX + ixx + 0, originY + iyy + 1] = ' ';
-                        owner.frameBuffer[originX + ixx + 1, originY + iyy + 1] = owner.CellStateToString(content);
+                        owner.frameBuffer[originX + ixx + 1, originY + iyy + 1] = content.ToChar();
                         owner.frameBuffer[originX + ixx + 2, originY + iyy + 1] = ' ';
                     }
                 }
@@ -151,18 +152,22 @@ namespace Battleship.UI
 
         }
 
-        protected void drawStatus(CmdUi owner, string status)
+        protected void drawStatus(CmdUi owner, int x, int y, string status)
         {
             // Draw text
             for (int i = 0; i < status.Length; ++i)
             {
-                var x = 10;
-                var y = owner.FieldH * 2 + 2;
                 owner.frameBuffer[x + i, y] = status[i];
             }
 
         }
 
+         protected (int, int) MyGridOrigin(CmdUi owner) => (1, 0);
+
+        protected (int, int) EnemyGridOrigin(CmdUi owner) =>  (owner.FieldW * Config.TerminalFieldWidth + 4, 0);
+
+        protected (int, int) StatusOrigin(CmdUi owner) =>  (10, MyGridOrigin(owner).Item2 + owner.FieldH * Config.TerminalFieldHeight + 2);
+        
         protected ValueTuple<int, int> CurPos { get; set; } = (Config.FieldWidth / 2, Config.FieldHeight / 2);
 
 
@@ -276,7 +281,7 @@ namespace Battleship.UI
                 }
             }
             // Go to interstate
-            owner.GotoState(eUiState.INTER, "From INITIAL.");
+            owner.GotoState(UiState.INTER, "From INITIAL.");
 
             return true;
         }
@@ -318,15 +323,20 @@ namespace Battleship.UI
 
         public override bool Update(CmdUi owner)
         {
+            var myGridOrigin = MyGridOrigin(owner);
+            var enemyGridOrigin = EnemyGridOrigin(owner);
+            var statusOrigin = StatusOrigin(owner);
+
             // Draw grid for me
-            // Active cursor here -> you're placing
-            drawGrid(owner, 1, 0, "ME:", owner.myField, true);
+            drawGrid(owner, myGridOrigin.Item1, myGridOrigin.Item2, "ME:", owner.myField, true);
 
             // Draw grid for the enemy
-            drawGrid(owner, owner.FieldW * 4 + 4, 0, "ENEMY: ", owner.enemyField, false);
+            drawGrid(owner, enemyGridOrigin.Item1, enemyGridOrigin.Item2, "ENEMY: ", owner.enemyField, false);
 
-            drawStatus(owner, "Placing ships");
+            // Draw status to the UI
+            drawStatus(owner, statusOrigin.Item1, statusOrigin.Item2, "Placing ships");
 
+            // Do we still have some ships to place?
             if (ShipsToPlace.Count > 0)
             {
                 CurShip = ShipsToPlace[0];
@@ -343,10 +353,6 @@ namespace Battleship.UI
             {
                 owner.Logic.PlaceShips();
             }
-
-
-
-
 
             return true;
         }
@@ -373,14 +379,17 @@ namespace Battleship.UI
     {
         public override bool Update(CmdUi owner)
         {
+            var myGridOrigin = MyGridOrigin(owner);
+            var enemyGridOrigin = EnemyGridOrigin(owner);
+            var statusOrigin = StatusOrigin(owner);
+
             // Draw grid for me
-            drawGrid(owner, 1, 0, "ME:", owner.myField, false);
+            drawGrid(owner, myGridOrigin.Item1, myGridOrigin.Item2, "ME:", owner.myField, false);
 
             // Draw grid for the enemy
-            // Active cursor here -> you're shooting
-            drawGrid(owner, owner.FieldW * 4 + 4, 0, "ENEMY: ", owner.enemyField, true);
+            drawGrid(owner, enemyGridOrigin.Item1, enemyGridOrigin.Item2, "ENEMY: ", owner.enemyField, true);
 
-            drawStatus(owner, "YOUR TURN! Aim with arrows and SHOOT with the SPACE key!");
+            drawStatus(owner, statusOrigin.Item1, statusOrigin.Item2, "YOUR TURN! Aim with arrows and SHOOT with the SPACE key!");
 
             owner.SwapBuffers();
             var input = owner.PollKey();
@@ -394,13 +403,17 @@ namespace Battleship.UI
     {
         public override bool Update(CmdUi owner)
         {
+            var myGridOrigin = MyGridOrigin(owner);
+            var enemyGridOrigin = EnemyGridOrigin(owner);
+            var statusOrigin = StatusOrigin(owner);
+
             // Draw grid for me
-            drawGrid(owner, 1, 0, "ME:", owner.myField, false);
+            drawGrid(owner, myGridOrigin.Item1, myGridOrigin.Item2, "ME:", owner.myField, false);
 
             // Draw grid for the enemy
-            drawGrid(owner, owner.FieldW * 4 + 4, 0, "ENEMY: ", owner.enemyField, false);
+            drawGrid(owner, enemyGridOrigin.Item1, enemyGridOrigin.Item2, "ENEMY: ", owner.enemyField, false);
 
-            drawStatus(owner, "OPPONENT'S TURN.");
+            drawStatus(owner, statusOrigin.Item1, statusOrigin.Item2, "OPPONENT'S TURN.");
 
             owner.SwapBuffers();
             var input = owner.PollKey();
@@ -420,7 +433,7 @@ namespace Battleship.UI
         {
             Console.Clear();
             Console.WriteLine();
-            Console.WriteLine("\tEND OF THE GAME");
+            Console.WriteLine("                     END OF THE GAME");
             Console.WriteLine("  ----------------------------------------------------------  ");
             Console.WriteLine();
             Console.WriteLine("\t == " + msg + " == ");

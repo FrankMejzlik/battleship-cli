@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Battleship.Common;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,10 +9,7 @@ namespace Battleship
 {
     public static class Utils
     {
-        private const string ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
-
-        public static string GetCoords(int x, int y)
+        public static string ToExcelCoords(int x, int y)
         {
             ++x;
             string str = string.Empty;
@@ -21,28 +19,39 @@ namespace Battleship
                 x /= 26;
             }
 
-            return  y.ToString() + str;
+            // <LETTER from x><y + 1>
+            return  str + (y + 1).ToString();
         }
 
-        public static (int, int) ToNumericCoordinates(string coordinates)
+        public static (int, int) FromExcelCoords(string coordinates)
         {
             string first = string.Empty;
             string second = string.Empty;
 
             CharEnumerator ce = coordinates.GetEnumerator();
             while (ce.MoveNext())
+            {
                 if (char.IsLetter(ce.Current))
+                {
                     first += ce.Current;
+                }
                 else
+                {
                     second += ce.Current;
+                }
+            }
 
             int i = 0;
             ce = first.GetEnumerator();
             while (ce.MoveNext())
-                i = (26 * i) + ALPHABET.IndexOf(ce.Current) + 1;
+            {
+                i = (26 * i) + ALPHABET.IndexOf(ce.Current);
+            }
 
-
-            return (int.Parse(second), i - 1);
+            return (i, int.Parse(second) - 1);
         }
+
+
+        private const string ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     }
 }

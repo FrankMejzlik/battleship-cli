@@ -1,5 +1,5 @@
 ﻿
-using Battleship.Models;
+using Battleship.Common;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -65,13 +65,23 @@ namespace Battleship.Services
 
             var packetByteSize = BitConverter.ToUInt16(lengthBuffer, 0);
             var jsonBuffer = new byte[packetByteSize];
+            
+            try {
+                stream.Read(jsonBuffer, 0, jsonBuffer.Length);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogE($"Reading packet failed with the message '{ex.Message}'.");
 
-            stream.Read(jsonBuffer, 0, jsonBuffer.Length);
+                errHandler();
+            }
+
             var jsonString = Encoding.UTF8.GetString(jsonBuffer);
 
 
+
             // Try deserialize it
-            Packet resPacket = new Packet(ePacketType.ERROR, "Error recieving a packet.");
+            Packet resPacket = new Packet(PacketType.ERROR, "Error recieving a packet.");
             try
             {
                 resPacket = JsonConvert.DeserializeObject<Packet>(jsonString);

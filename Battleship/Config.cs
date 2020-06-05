@@ -1,92 +1,84 @@
-﻿using Battleship.Models;
-using System;
+﻿
+using Battleship.Common;
 using System.Collections.Generic;
-using System.Text;
+
 
 namespace Battleship
 {
-    /**
-     * Pure static class holding the app configuration.
-     */
+    /** Pure static class holding the app configuration. */
     static class Config
     {
+        /** Logging level. 
+         * 
+         * LEVELS:
+         *      0 => None
+         *      1 => Errors
+         *      2 => And warnings
+         *      3 => And info
+         *      4 => And debug info
+         */
+        public static int LogLevel {get; } = 4;
 
-        public static int Timeout { get; set; } = 10;
+        public static int TerminalFieldWidth {get; } = 4;
+        public static int TerminalFieldHeight {get; } = 2;
 
-        public static string ClientGameLogFilepath { get; set; } = @"client_game_log.txt";
-        public static string ServerGameLogFilepath { get; set; } = @"server_game_log.txt";
+        
 
-        public static int Port { get; set; } = 8888;
+        /** Time limit in seconds for the action before the game will be terminated. */
+        public static int Timeout { get; } = 60;
 
-        public static string Ip { get; set; } = "127.0.0.1";
+        /** Where the client game log will be written. */
+        public static string ClientGameLogFilepath { get; } = @"client_game_log.txt";
 
-        public static int FieldWidth { get; set; } = 10;
-        public static int FieldHeight { get; set; } = 10;
+        /** Where the server game log will be written. */
+        public static string ServerGameLogFilepath { get; } = @"server_game_log.txt";
+
+        /** Default port that will be used to start server at. */
+        public static int Port { get; } = 8888;
+
+        /** Default IP address to connect to while acting like a client. */
+        public static string Ip { get; } = "127.0.0.1";
+
+        /** Width of the game field. */
+        public static int FieldWidth { get; } = 10;
+
+        /** Height of the game field. */
+        public static int FieldHeight { get; } = 10;
 
 
-        public static string WaterString { get; set; } = "WATER";
-        public static string SunkString { get; set; } = "SUNK";
-        public static string HitString { get; set; } = "HIT";
-
-        public static string StrTimeout { get; set; } = "Timeout";
-
-
-
-        public static List<Ship> ShipsToPlace { get; set; } = new List<Ship>()
+        /** Definitions of the ships players will place when the game starts. 
+         * 
+         * Coordinates are relative to the origin point of the ship.
+         * EXAMPLE: (1, 0), (-1, 1), (-1, 0)
+         *        O
+         *        O + O
+         */
+        public static List<Ship> ShipsToPlace { get; } = new List<Ship>()
         {
             new Ship() { Fields = new List<Field>() { new Field(0, 0) } },
             new Ship() { Fields = new List<Field>() { new Field(-1, 0), new Field(0, 0), new Field(1, 0) } },
             new Ship() { Fields = new List<Field>() { new Field(-1, 0), new Field(0, 0), new Field(1, 0), new Field(0, -1), new Field(0, 1) } }
         };
-    }
-    public enum ePacketType
-    {
-        ERROR = 0,
-        MESSAGE = 1,
-        SET_CLEINT_SHIPS = 2,
-        FIRE = 3,
-        FIRE_REPONSE = 4,
-        YOUR_TURN = 5,
-        OPPONENTS_TURN = 6,
-        SET_CLIENT_SHIPS = 7,
 
-        /** Indicates that the addressee won. */
-        YOU_WIN = 8,
-
-        /** Indicates that the addressee lost. */
-        YOU_LOSE = 9,
-
-        /** Indicates that game ended due to long inactivity */
-        TIMED_OUT = 10,
-
-        FIN = 11
-
-    }
-    public enum eFireResponseType
-    {
-
-        WATER = 0,
-
-        HIT = 1,
-
-        SUNK = 2
-    }
-
-    public static class FireResponseExtensions
-    {
-        public static string ToFriendlyString(this eFireResponseType type)
+        /** String constants to be used while coommunicating with the users. */
+        public static class Strings
         {
-            switch (type)
-            {
-            case eFireResponseType.WATER:
-                return Config.WaterString;
-            case eFireResponseType.HIT:
-                return Config.HitString;
-            case eFireResponseType.SUNK:
-                return Config.SunkString;
-            default:
-                return string.Empty;
-            }
+            public static string Water { get; } = "WATER";
+            public static string Sunk { get; } = "SUNK";
+            public static string Hit { get; } = "HIT";
+
+            /*
+             * Non-error strings.
+             */
+            public static string Timeout { get; } = "The game timed out!";
+            public static string WaitingForOpponent { get; } = "Waiting for an opponent to join";
+
+            /*
+             * User error strings.
+             */
+            public static string ErrConnectingFailed { get; } = "Connecting failed, sorry.";
+            public static string ErrCannotConnectToTheServer { get; } = "Connecting failed, sorry.";
+            public static string ErrServerCouldNotStart { get; } = "We're sorry but server couldn't start.";
         }
     }
 }

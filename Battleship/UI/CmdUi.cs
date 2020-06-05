@@ -1,27 +1,17 @@
-﻿using Battleship.Models;
+﻿
+using Battleship.Common;
+using Battleship.Logic;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
 using System.Text;
 using System.Threading;
 
 namespace Battleship.UI
 {
-    public enum eCellState
-    {
-        SHIP,
-
-        MISSED_HIM,
-        HIT_HIM,
-
-        UNKNOWN,
-
-        MISSED_ME,
-        HIT_ME
-    };
+    
     /**
-     * Command line UI for the game.
+     * Command line UI for the Battleships game.
+     * 
+     * It is interactively rendered into the terminal and acts on each input user provides.
      */
     public class CmdUi : IUi
     {
@@ -30,7 +20,9 @@ namespace Battleship.UI
          */
         public CmdUi()
         {
-            // Prepre terminal
+            Logger.LogI("Creating command line UI...");
+
+            // Prepre the terminal
             HandleWindowChange();
 
             // My field
@@ -38,7 +30,7 @@ namespace Battleship.UI
             {
                 for (int y = 0; y < FieldH; ++y)
                 {
-                    myField[x, y] = eCellState.UNKNOWN;
+                    myField[x, y] = CellState.UNKNOWN;
                 }
             }
 
@@ -47,24 +39,34 @@ namespace Battleship.UI
             {
                 for (int y = 0; y < FieldH; ++y)
                 {
-                    enemyField[x, y] = eCellState.UNKNOWN;
+                    enemyField[x, y] = CellState.UNKNOWN;
                 }
             }
+
+            Logger.LogI("The UI created.");
         }
         public void Shutdown()
         {
+            Logger.LogI("Shutting down the UI...");
+
             Logic.ShouldRun = false;
             ShouldRun = false;
+
+            Logger.LogI("UI is shut down.");
         }
 
         public void Launch()
         {
+            Logger.LogI("Starting the UI game loop...");
+
             // The main UI loop
             while (ShouldRun)
             {
                 // Let the active state handle it
                 State.Update(this);
             }
+
+            Logger.LogI("The UI game loop ended.");
         }
 
         public ConsoleKeyInfo PollKey()
@@ -80,47 +82,53 @@ namespace Battleship.UI
                     return new ConsoleKeyInfo();
                 }
 
-                Thread.Sleep(50);
+                // Sleep long enough but short enough so user won't notice
+                Thread.Sleep(100);
             }
             input = Console.ReadKey();
+
+            Logger.LogD($"Input key: {input.Key}");
+
             return input;
         }
 
-        public void GotoState(eUiState newState, string msg = "")
+        public void GotoState(UiState newState, string msg = "")
         {
+            Logger.LogD($"Changing UI state to '{newState}'...");
+
             Console.Clear();
 
             switch (newState)
             {
-            case eUiState.INTER:
+            case UiState.INTER:
                 State = new InterState();
                 break;
 
-            case eUiState.INITIAL:
+            case UiState.INITIAL:
                 State = new InitialState();
                 break;
 
-            case eUiState.CLIENT_CONNECTING:
+            case UiState.CLIENT_CONNECTING:
                 State = new ClientConnectionState();
                 break;
 
-            case eUiState.SERVER_WAITING:
+            case UiState.SERVER_WAITING:
                 State = new ServerWaitingState();
                 break;
 
-            case eUiState.PLACING_SHIPS:
+            case UiState.PLACING_SHIPS:
                 State = new PlacingShipsState();
                 break;
 
-            case eUiState.YOUR_TURN:
+            case UiState.YOUR_TURN:
                 State = new YourTurnState();
                 break;
 
-            case eUiState.OPPONENTS_TURN:
+            case UiState.OPPONENTS_TURN:
                 State = new OpponetsTurnState();
                 break;
 
-            case eUiState.FINAL:
+            case UiState.FINAL:
                 State = new FinalState(msg);
                 break;
 
@@ -135,27 +143,27 @@ namespace Battleship.UI
 
         public void HandleHitHimAt(int x, int y)
         {
-            enemyField[x, y] = eCellState.HIT_HIM;
+            enemyField[x, y] = CellState.HIT_HIM;
         }
 
         public void HandleMissHimtAt(int x, int y)
         {
-            enemyField[x, y] = eCellState.MISSED_HIM;
+            enemyField[x, y] = CellState.MISSED_HIM;
         }
 
         public void HandlePlaceShipAt(int x, int y)
         {
-            myField[x, y] = eCellState.SHIP;
+            myField[x, y] = CellState.SHIP;
         }
 
         public void HandleMissedMe(int x, int y)
         {
-            myField[x, y] = eCellState.MISSED_ME;
+            myField[x, y] = CellState.MISSED_ME;
         }
 
         public void HandleHitMe(int x, int y)
         {
-            myField[x, y] = eCellState.HIT_ME;
+            myField[x, y] = CellState.HIT_ME;
         }
 
         private void HandleWindowChange()
@@ -179,32 +187,10 @@ namespace Battleship.UI
             }
         }
 
-        public char CellStateToString(eCellState state)
-        {
-            switch (state)
-            {
-            case eCellState.MISSED_HIM:
-                return '~';
-
-            case eCellState.UNKNOWN:
-                return ' ';
-            case eCellState.SHIP:
-                return 'O';
-            case eCellState.HIT_HIM:
-                return 'X';
-            case eCellState.MISSED_ME:
-                return '*';
-            case eCellState.HIT_ME:
-                return 'X';
-
-
-            }
-            return ' ';
-        }
+        
 
         public void SwapBuffers()
         {
-            Console.Clear();
             Console.SetCursorPosition(0, 0);
             StringBuilder sb = new StringBuilder();
 
@@ -224,8 +210,6 @@ namespace Battleship.UI
 
         private void DoCheck()
         {
-            // Check timer
-
             // Check status
             if (!ShouldRun)
             {
@@ -233,11 +217,11 @@ namespace Battleship.UI
             }
         }
 
-        public void SetLogic(Logic l)
+        public void SetLogic(ILogic logic)
         {
-            Logic = l;
+            Logic = logic;
 
-            if (l is Server)
+            if (logic is Server)
             {
                 Console.Title = "Battleships: -- SERVER -- ";
             }
@@ -248,26 +232,23 @@ namespace Battleship.UI
 
         }
 
-
-        
-
         /**
          * Member variables
          */
         public ICmdUiState State { get; set; } = new InitialState();
-        public bool IsInter
+        public bool IsInInterstate
         {
             get => State is InterState;
         }
 
         public bool ShouldUnblock { get; set; } = false;
 
-        public eCellState[,] myField = new eCellState[Config.FieldHeight, Config.FieldWidth];
-        public eCellState[,] enemyField = new eCellState[Config.FieldHeight, Config.FieldWidth];
+        public CellState[,] myField = new CellState[Config.FieldHeight, Config.FieldWidth];
+        public CellState[,] enemyField = new CellState[Config.FieldHeight, Config.FieldWidth];
         public int FieldW { get; set; } = Config.FieldWidth;
         public int FieldH { get; set; } = Config.FieldHeight;
 
-        public Logic Logic { get; set; }
+        public ILogic Logic { get; set; }
 
         public bool ShouldRun { get; set; } = true;
 

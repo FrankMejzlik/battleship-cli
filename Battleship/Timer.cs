@@ -48,6 +48,9 @@ namespace Battleship
             }
         }
 
+        /*
+         * Member variables
+         */
         /** Reference to the logic this class guards. */
         private static Server Server { get; set; }
 
