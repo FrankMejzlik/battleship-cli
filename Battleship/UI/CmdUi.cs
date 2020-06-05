@@ -34,6 +34,7 @@ namespace Battleship.UI
             Logger.LogI("The UI created.");
         }
 
+        /** Resets the given playfied (with unknown state). */
         private void ResetField(CellState[,] field)
         {
             for (int x = 0; x < FieldW; ++x)
@@ -45,6 +46,7 @@ namespace Battleship.UI
             }
         }
 
+        /** Resets the current framebuffer. */
         private void ResetFramebuffer()
         {
             // Initialize frame buffer
@@ -57,6 +59,7 @@ namespace Battleship.UI
             }
         }
 
+        /** Shutsdowwn the UI (and also the logic behing it). */
         public void Shutdown()
         {
             Logger.LogI("Shutting down the UI...");
@@ -67,6 +70,7 @@ namespace Battleship.UI
             Logger.LogI("UI is shut down.");
         }
 
+        /** Launch the UI. */
         public void Launch()
         {
             Logger.LogI("Starting the UI game loop...");
@@ -81,6 +85,7 @@ namespace Battleship.UI
             Logger.LogI("The UI game loop ended.");
         }
 
+        /** Pol one input key (blocks thread until one becoms available or ShouldUnblock flag becomes true). */
         public ConsoleKeyInfo PollKey()
         {
             ConsoleKeyInfo input;
@@ -106,6 +111,7 @@ namespace Battleship.UI
             return input;
         }
 
+        /** Moves the Ui into the provided state. */
         public void GotoState(UiState newState, string msg = "")
         {
             Logger.LogD($"Changing UI state to '{newState}'...");
@@ -183,6 +189,7 @@ namespace Battleship.UI
             myField[x, y] = CellState.HIT_ME;
         }
 
+        /** Resize the terminal accordingly. */
         private void HandleWindowChange()
         {
             Console.SetWindowSize(FieldW * 4 * 2 + 20, FieldH * 2 + 5);
@@ -197,8 +204,7 @@ namespace Battleship.UI
             ResetFramebuffer();
         }
 
-        
-
+        /** Renders the actual contents of the frame buffer into the terminal. */
         public void SwapBuffers()
         {
             Console.SetCursorPosition(0, 0);
@@ -217,7 +223,7 @@ namespace Battleship.UI
             Console.SetCursorPosition(0, 0);
         }
 
-
+        /** Checks application state. */
         private void DoCheck()
         {
             // Check status
@@ -227,6 +233,7 @@ namespace Battleship.UI
             }
         }
 
+        /** Sets up the reference to logic this UI serves to. */
         public void SetLogic(ILogic logic)
         {
             Logic = logic;
@@ -245,28 +252,43 @@ namespace Battleship.UI
         /**
          * Member variables
          */
+        /** Current state of the UI. */
         public ICmdUiState State { get; set; } = new InitialState();
+        
+        /** If the UI is in the interstate. */
         public bool IsInInterstate
         {
             get => State is InterState;
         }
 
+        /** If blocked input thread should be unblocked. */
         public bool ShouldUnblock { get; set; } = false;
 
+        /** My playfield representation for rendering. */
         public CellState[,] myField = new CellState[Config.FieldHeight, Config.FieldWidth];
+
+        /** Enemy playfield representation for rendering. */
         public CellState[,] enemyField = new CellState[Config.FieldHeight, Config.FieldWidth];
+
+        /** Playfield width. */
         public int FieldW { get; set; } = Config.FieldWidth;
+
+        /** Playfield height. */
         public int FieldH { get; set; } = Config.FieldHeight;
 
+        /** Logic we work for. */
         public ILogic Logic { get; set; }
 
+        /** If the UI should run. */
         public bool ShouldRun { get; set; } = true;
 
-
+        /** Terminal width (in characters). */
         private int WindowWidth { get; set; }
+
+        /** Terminal height (in characters). */
         private int WindowHeight { get; set; }
 
-
+        /** Current frame buffer. */
         public char[,] frameBuffer;
     }
 }

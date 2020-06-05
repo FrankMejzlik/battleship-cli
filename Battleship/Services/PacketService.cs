@@ -59,24 +59,26 @@ namespace Battleship.Services
             var stream = client.GetStream();
             var lengthBuffer = new byte[2];
 
+            // Read the lengths first (we use 2B uint)
             stream.Read(lengthBuffer, 0, 2);
 
+            // Get the byte lengths of the packet
             var packetByteSize = BitConverter.ToUInt16(lengthBuffer, 0);
             var jsonBuffer = new byte[packetByteSize];
-            
-            try {
+
+            try
+            {
                 stream.Read(jsonBuffer, 0, jsonBuffer.Length);
             }
+            // Handle error with provided handler
             catch (Exception ex)
             {
                 Logger.LogE($"Reading packet failed with the message '{ex.Message}'.");
-
                 errHandler();
             }
 
+            // Get JSON string from it
             var jsonString = Encoding.UTF8.GetString(jsonBuffer);
-
-
 
             // Try deserialize it
             Packet resPacket = new Packet(PacketType.ERROR, "Error recieving a packet.");
@@ -84,10 +86,10 @@ namespace Battleship.Services
             {
                 resPacket = JsonConvert.DeserializeObject<Packet>(jsonString);
             }
+            // Handle error with provided handler
             catch (Exception ex)
             {
                 Logger.LogE($"Recieve packet failed with the message '{ex.Message}'.");
-
                 errHandler();
             }
 

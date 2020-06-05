@@ -1,11 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿
 using System.Diagnostics;
-using System.Text;
 using System.Threading;
 
 namespace Battleship
 {
+    /** Class responsible for timer that prevents the game from infinity. */
     public static class Timer
     {
         /** Assigns reference to the logic instance this wimer will guard. */
@@ -48,9 +47,6 @@ namespace Battleship
             }
         }
 
-        /*
-         * Member variables
-         */
         /** Reference to the logic this class guards. */
         private static Server Server { get; set; }
 

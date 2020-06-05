@@ -1,14 +1,12 @@
-﻿using Battleship.Common;
+﻿
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Battleship
 {
+    /** General utility functions. */
     public static class Utils
     {
+        /** Converts the provided xy integer coordinates to Excel coordinates. */
         public static string ToExcelCoords(int x, int y)
         {
             ++x;
@@ -23,35 +21,36 @@ namespace Battleship
             return  str + (y + 1).ToString();
         }
 
+        /** Converts the provided Excel coordinates to integer xy coordinates. */
         public static (int, int) FromExcelCoords(string coordinates)
         {
             string first = string.Empty;
             string second = string.Empty;
 
-            CharEnumerator ce = coordinates.GetEnumerator();
-            while (ce.MoveNext())
+            CharEnumerator it = coordinates.GetEnumerator();
+            while (it.MoveNext())
             {
-                if (char.IsLetter(ce.Current))
+                if (char.IsLetter(it.Current))
                 {
-                    first += ce.Current;
+                    first += it.Current;
                 }
                 else
                 {
-                    second += ce.Current;
+                    second += it.Current;
                 }
             }
 
             int i = 0;
-            ce = first.GetEnumerator();
-            while (ce.MoveNext())
+            it = first.GetEnumerator();
+            while (it.MoveNext())
             {
-                i = (26 * i) + ALPHABET.IndexOf(ce.Current);
+                i = (26 * i) + ALPHABET.IndexOf(it.Current);
             }
 
             return (i, int.Parse(second) - 1);
         }
 
-
+        /** Alphabet for Excel coordinates conversion */
         private const string ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     }
 }

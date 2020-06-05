@@ -1,21 +1,21 @@
-﻿using Battleship.Common;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿
+using Battleship.Common;
 
 namespace Battleship.Logic
 {
+    /** Common interface for both Server and Client. */
     public interface ILogic
     {
         /** This should gracefully terminate the logic instance. */
         public void Shutdown();
 
         /** It shots at the enemy. */
-        void FireAt(int x, int y);
+        public void FireAt(int x, int y);
 
         /** Place the ship at the provided coordinates. */
-        void PlaceShip(int x, int y, Ship ship);
+        public void PlaceShip(int x, int y, Ship ship);
 
+        /** This is final command that terminates the placing ships stage */
         public void PlaceShips();
 
         /** Flag showing if the instance should be still running. */
