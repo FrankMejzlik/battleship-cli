@@ -465,10 +465,33 @@ namespace Battleship
             foreach (var f in ship.Fields)
             {
                 int newX = f.X + x;
+                if (newX < 0 || newX >= Config.FieldWidth - 1)
+                {
+                    continue;
+                }
                 int newY = f.Y + y;
+                if (newY < 0 || newY >= Config.FieldHeight - 1)
+                {
+                    continue;
+                }
 
-                Field newF = new Field(newX, newY);
-                s.Fields.Add(newF);
+                // Check uniqeness
+                var isShipAlready = ServerShips.Any(ship =>
+                   ship.Fields.Any(field =>
+                       field.Coords.Equals(Utils.ToExcelCoords(newX, newY))
+                   )
+                );
+
+                if (!isShipAlready)
+                {
+                    Field newF = new Field(newX, newY);
+                    s.Fields.Add(newF);
+                }
+            }
+            // Handle empty ships
+            if (s.Fields.Count == 0)
+            {
+                s.IsSunk = true;
             }
             ServerShips.Add(s);
 

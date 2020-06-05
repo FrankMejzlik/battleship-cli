@@ -179,15 +179,15 @@ namespace Battleship.UI
                     var xxx = c.X * Config.TerminalFieldWidth + originX;
                     var yyy = c.Y * Config.TerminalFieldHeight + originY;
 
-                    var maxX = owner.FieldH * Config.TerminalFieldHeight;
-                    var maxY = owner.FieldW  * Config.TerminalFieldWidth;
+                    var maxX = owner.FieldW * Config.TerminalFieldWidth + 1;
+                    var maxY = owner.FieldH * Config.TerminalFieldHeight;
 
-                    var finY = Math.Clamp(yyy, 0, maxX);
+                    var finY = Math.Clamp(yyy, 2, maxY);
 
                     // Draw 3 horizontal terminal fields (width of one field)
                     for (int off = 0; off < 3; ++off)
                     {
-                        var finX = Math.Clamp(xxx + off, 0, maxY);
+                        var finX = Math.Clamp(xxx + off, 3, maxX);
                         owner.frameBuffer[finX, finY] = Config.ShipChar;
                     }
                 }
@@ -334,7 +334,7 @@ namespace Battleship.UI
                 {
                     Console.Clear();
                     Console.WriteLine(Config.ScreenStrings.SelectAddressScreen());
-    
+
                     // Get default values
                     string IP = Config.Ip;
                     int port = Config.Port;
@@ -588,7 +588,7 @@ namespace Battleship.UI
         {
             Console.Clear();
             Console.WriteLine(Config.ScreenStrings.FinalScreen(Msg));
-            
+
             // Wait for an input
             while (true)
             {
@@ -605,7 +605,7 @@ namespace Battleship.UI
         /**
          * Member variables
          */
-         /** Message to be displayed. */
+        /** Message to be displayed. */
         private string Msg { get; } = "";
     }
 }

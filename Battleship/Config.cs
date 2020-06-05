@@ -21,11 +21,26 @@ namespace Battleship
          */
         public static List<Ship> ShipsToPlace { get; } = new List<Ship>()
         {
-            new Ship() { Fields = new List<Field>() { new Field(0, 0) } },
-            new Ship() { Fields = new List<Field>() { new Field(-1, 0), new Field(0, 0), new Field(1, 0) } },
-            new Ship() { Fields = new List<Field>() { new Field(-1, 0), new Field(0, 0), new Field(1, 0), new Field(0, -1), new Field(0, 1) } }
-        };
+            // Aircraft ship #1
+            new Ship() { Fields = new List<Field>() { new Field(0, 2),new Field(0, 1), new Field(0, 0), new Field(0, -1), new Field(0, -2) } },
 
+            // Battleship #1
+            new Ship() { Fields = new List<Field>() { new Field(0, 1), new Field(0, 0), new Field(0, -1), new Field(0, -2) } },
+
+            // Cruiser #1
+            new Ship() { Fields = new List<Field>() { new Field(-1, 0), new Field(0, 0), new Field(1, 0) } },
+
+            // Patrol #1
+            new Ship() { Fields = new List<Field>() { new Field(0, 0), new Field(1, 0) } },
+            // Patrol #2
+            new Ship() { Fields = new List<Field>() { new Field(0, 0), new Field(0, 1) } },
+
+            // Submarine #1
+            new Ship() { Fields = new List<Field>() { new Field(0, 0) } },
+            // Submarine #2
+            new Ship() { Fields = new List<Field>() { new Field(0, 0) } },
+        };
+          
         /*******************************************
          *  ^^^^^^^ SETUP YOUR SHIPS HERE ^^^^^^^
          *******************************************/
@@ -42,7 +57,7 @@ namespace Battleship
         public static int LogLevel { get; } = 4;
 
         /** Time limit in seconds for the action before the game will be terminated. */
-        public static int Timeout { get; } = 60;
+        public static int Timeout { get; } = 120;
 
         /** Minimal time in milisecond to wait between UI iterations. */
         public static int UpdateWait { get; } = 100;
